@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>tg-watchbot</h1>
+  <h1>TG-RXSS</h1>
   <p>Telegram 双向客服机器人 + Web/RSS 监控推送 + 群组/频道关键词监听 + 可视化管理面板</p>
   <p>双向对话 · 关键词监控 · 群组/频道监听 · 私聊广告拦截 · 多管理员 · 配置导入导出</p>
   <p>
@@ -13,7 +13,7 @@
 </div>
 
 ## 简介：
-tg-watchbot 是一个轻量级 Python 服务，把 **Telegram 双向客服机器人**、**Web/RSS 监控推送** 和 **群组/频道关键词监听** 合在一起：
+TG-RXSS 是一个轻量级 Python 服务，把 **Telegram 双向客服机器人**、**Web/RSS 监控推送** 和 **群组/频道关键词监听** 合在一起：
 
 - 普通用户私聊 Bot，消息会转发给管理员；
 - 管理员可以直接回复、主动发文字/图片、封禁/备注用户；
@@ -26,7 +26,7 @@ tg-watchbot 是一个轻量级 Python 服务，把 **Telegram 双向客服机器
 
 ## AI 一句话安装
 ```
-请克隆 `https://github.com/GongyiChuren/tg-watchbot.git` 到本机，默认使用 Docker 按 README 的 `Docker 安装（含自启）` 启动服务；若无 Docker，则按 `快速开始` 走 Python 和 systemd 部署直接安装。启动后打开 `http://127.0.0.1:8765`，安装完成后提醒用户记得在面板填写 `TELEGRAM_BOT_TOKEN` 和 `ADMIN_CHAT_ID` 并在之后保存并执行重启（Docker 用 `docker compose restart`，直接安装用重启进程）。
+请克隆 `https://github.com/ajksgh/TG-RXSS.git` 到本机，默认使用 Docker 按 README 的 `Docker 安装（含自启）` 启动服务；若无 Docker，则按 `快速开始` 走 Python 和 systemd 部署直接安装。启动后打开 `http://127.0.0.1:8765`，安装完成后提醒用户记得在面板填写 `TELEGRAM_BOT_TOKEN` 和 `ADMIN_CHAT_ID` 并在之后保存并执行重启（Docker 用 `docker compose restart`，直接安装用重启进程）。
 ``` 
 ## 更新日志
 
@@ -203,8 +203,8 @@ tg-watchbot 是一个轻量级 Python 服务，把 **Telegram 双向客服机器
 ## Docker 安装（含自启）
 
 ```bash
-git clone https://github.com/GongyiChuren/tg-watchbot.git tg-watchbot
-cd tg-watchbot
+git clone https://github.com/ajksgh/TG-RXSS.git TG-RXSS
+cd TG-RXSS
 cp .env.example .env
 cp config.example.yaml config.yaml
 chmod 600 .env
@@ -244,8 +244,8 @@ docker compose up -d --build
 ## 手动安装（Python）
 
 ```bash
-git clone https://github.com/GongyiChuren/tg-watchbot.git tg-watchbot
-cd tg-watchbot
+git clone https://github.com/ajksgh/TG-RXSS.git TG-RXSS
+cd TG-RXSS
 python3 -m venv .venv
 ./.venv/bin/pip install -U pip
 ./.venv/bin/pip install -r requirements.txt
@@ -294,7 +294,7 @@ sudo mkdir -p /opt/tg-watchbot
 sudo chown -R "$USER:$USER" /opt/tg-watchbot
 
 cd /opt/tg-watchbot
-git clone https://github.com/GongyiChuren/tg-watchbot.git .
+git clone https://github.com/ajksgh/TG-RXSS.git .
 python3 -m venv .venv
 ./.venv/bin/pip install -U pip
 ./.venv/bin/pip install -r requirements.txt
@@ -576,21 +576,6 @@ monitors:
 
 ## License
 
-本项目采用非商业授权。
+本项目采用 MIT License，详见 [LICENSE](LICENSE)。
 
-你可以：
-- 学习、研究、个人使用本项目
-- 修改代码用于非商业用途
-- 在非商业项目中使用本项目
-
-你必须：
-- 保留原作者署名
-- 在引用或二次发布时注明项目来源：
-  https://github.com/GongyiChuren/tg-watchbot
-
-你不可以：
-- 将本项目或其修改版本用于商业用途
-- 售卖本项目或基于本项目提供付费服务
-- 在未获得作者书面许可的情况下用于商业产品
-
-商业使用请先联系作者获得授权。
+项目基于 [GongyiChuren/tg-watchbot](https://github.com/GongyiChuren/tg-watchbot) 构建并进行修改。
