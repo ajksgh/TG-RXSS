@@ -1,0 +1,19 @@
+# tg-watchbot 配置示例（人机验证 + 自动回复相关段）
+
+bot:
+  rate_limit:
+    window_seconds: 10
+    max_messages: 3
+  spam_filter:
+    enabled: true
+    auto_block: true        # 命中后静默拉黑：不转发、不通知管理员
+    keywords: []
+  # 新用户首条私聊先过图片验证码（PIL 本地生成，无外部依赖）
+  verification:
+    enabled: true           # 总开关；关闭后所有人直接转交
+    expires_minutes: 10     # 验证码有效期（分钟），超时点「换一张」重发
+  # 自动回复：启用后对私聊用户自动答复（忙碌/睡觉场景）
+  auto_reply:
+    enabled: false
+    text: "消息已转发给管理员，佬友目前在睡觉，睡醒后会回复。"
+    min_interval_minutes: 30  # 同一用户两次自动回复的最小间隔（分钟，最小 5）
