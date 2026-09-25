@@ -3107,6 +3107,7 @@ def monitor_from_form(
     url: str,
     interval_seconds: int,
     keywords: str,
+    exclude_keywords: str,
     item_selector: str,
     title_selector: str,
     link_selector: str,
@@ -3127,6 +3128,7 @@ def monitor_from_form(
             MIN_INTERVAL_SECONDS,
         ),
         "keywords": parse_lines(keywords),
+        "exclude_keywords": parse_lines(exclude_keywords),
         "notify_telegram": notify_telegram,
         "notify_on": {
             "keyword_match": keyword_match,
