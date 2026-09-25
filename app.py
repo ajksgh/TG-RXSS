@@ -1705,8 +1705,16 @@ def infer_monitor_type(url: str) -> str:
 
 def panel_base_url() -> str:
     load_dotenv(ENV_PATH, override=True)
+    configured = os.getenv("WEB_PANEL_PUBLIC_URL", "").strip()
+    if configured:
+        candidate = configured if re.match(r"^https?://", configured, re.I) else f"https://{configured}"
+        parsed = urlparse(candidate)
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            return candidate.rstrip("/")
     host = os.getenv("WEB_PANEL_HOST", "127.0.0.1")
     port = os.getenv("WEB_PANEL_PORT", "8765")
+    if host in {"0.0.0.0", "::", "[::]", ""}:
+        host = "127.0.0.1"
     return f"http://{host}:{port}".rstrip("/")
 
 
@@ -3332,6 +3340,7 @@ def env_values() -> dict[str, str]:
         "WEB_PANEL_ENABLED": os.getenv("WEB_PANEL_ENABLED", "true"),
         "WEB_PANEL_HOST": os.getenv("WEB_PANEL_HOST", "127.0.0.1"),
         "WEB_PANEL_PORT": os.getenv("WEB_PANEL_PORT", "8765"),
+        "WEB_PANEL_PUBLIC_URL": os.getenv("WEB_PANEL_PUBLIC_URL", ""),
         "WEB_PANEL_USER": os.getenv("WEB_PANEL_USER", "admin"),
         "WEB_PANEL_PASSWORD": os.getenv("WEB_PANEL_PASSWORD", "admin"),
         "WEB_PANEL_SESSION_SECRET": os.getenv("WEB_PANEL_SESSION_SECRET", ""),
@@ -3366,6 +3375,7 @@ def write_env_values(values: dict[str, str]) -> None:
         f"WEB_PANEL_ENABLED={values.get('WEB_PANEL_ENABLED','true')}",
         f"WEB_PANEL_HOST={values.get('WEB_PANEL_HOST','127.0.0.1')}",
         f"WEB_PANEL_PORT={values.get('WEB_PANEL_PORT','8765')}",
+        f"WEB_PANEL_PUBLIC_URL={values.get('WEB_PANEL_PUBLIC_URL','')}",
         f"WEB_PANEL_USER={values.get('WEB_PANEL_USER','admin')}",
         f"WEB_PANEL_PASSWORD={values.get('WEB_PANEL_PASSWORD','admin')}",
         f"WEB_PANEL_SESSION_SECRET={session_value}",
@@ -4301,8 +4311,8 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
 </div>
 <div class=step><div class=step-title><span class=step-no>3</span><span>高级设置</span></div>
 <p class=muted>一般保持默认即可。</p>
-<div class=grid><div><label>站点名称</label><input name=PANEL_TITLE value='{html_escape(v['PANEL_TITLE'])}'></div><div><label>网站 Logo</label><input name=PANEL_LOGO value='{html_escape(v['PANEL_LOGO'])}' placeholder='留空使用默认图标，可填图片 URL'></div><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
-<div class=msg>公网提示：监听地址填 <code>0.0.0.0</code> 会让面板监听所有网卡；Docker 是否暴露公网还取决于 <code>docker-compose.yml</code> 的端口映射和服务器防火墙。个人部署建议保持 <code>127.0.0.1</code>，用 SSH 隧道、反代或 Cloudflare Tunnel 访问。</div>
+<div class=grid><div><label>站点名称</label><input name=PANEL_TITLE value='{html_escape(v['PANEL_TITLE'])}'></div><div><label>网站 Logo</label><input name=PANEL_LOGO value='{html_escape(v['PANEL_LOGO'])}' placeholder='留空使用默认图标，可填图片 URL'></div><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板公网地址</label><input name=WEB_PANEL_PUBLIC_URL value='{html_escape(v['WEB_PANEL_PUBLIC_URL'])}' placeholder='https://tg.aikin.kdns.fr'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
+<div class=msg>公网地址用于 Telegram 菜单、打开面板按钮和在面板新增等外部链接；监听地址仍是服务器内部绑定地址。监听地址填 <code>0.0.0.0</code> 会让面板监听所有网卡，Docker 是否暴露公网还取决于 <code>docker-compose.yml</code> 的端口映射和服务器防火墙。</div>
 <h3>自动清理</h3><div class=grid><div><label>清理间隔（分钟）</label><input name=CLEANUP_INTERVAL_MINUTES type=number min=1 value='{html_escape(cleanup.get("interval_minutes", 60))}'></div><div><label>通知删除时间（分钟）</label><input name=CLEANUP_MESSAGE_DELETE_AFTER_MINUTES type=number min=1 value='{html_escape(cleanup.get("monitor_message_delete_after_minutes", 60))}'></div><div><label>保留监控数据（分钟）</label><input name=CLEANUP_RETENTION_MINUTES type=number min=1 value='{html_escape(cleanup.get("monitor_retention_minutes", 1440))}'></div></div>
 </div>
 <input type=hidden name=WEB_PANEL_ENABLED value='true'><div class=form-actions><button class='btn primary' type=submit>保存设置</button></div><small>改 Token、管理员 ID、端口或 TG_API_ID / TG_API_HASH 后需要保存并重启。</small></form></div>
@@ -4353,9 +4363,9 @@ async function logoutTgSession() {{
         cfg_save(cfg)
 
     @app.post("/settings", response_class=HTMLResponse)
-    async def settings_save(_: str = Depends(panel_auth), PANEL_TITLE: str = Form("tg-watchbot"), PANEL_LOGO: str = Form(""), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin"), CLEANUP_INTERVAL_MINUTES: int = Form(60), CLEANUP_MESSAGE_DELETE_AFTER_MINUTES: int = Form(60), CLEANUP_RETENTION_MINUTES: int = Form(1440)) -> str:
+    async def settings_save(_: str = Depends(panel_auth), PANEL_TITLE: str = Form("tg-watchbot"), PANEL_LOGO: str = Form(""), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PUBLIC_URL: str = Form(""), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin"), CLEANUP_INTERVAL_MINUTES: int = Form(60), CLEANUP_MESSAGE_DELETE_AFTER_MINUTES: int = Form(60), CLEANUP_RETENTION_MINUTES: int = Form(1440)) -> str:
         save_panel_settings(locals() | {"WEB_PANEL_ENABLED": WEB_PANEL_ENABLED}, CLEANUP_INTERVAL_MINUTES, CLEANUP_MESSAGE_DELETE_AFTER_MINUTES, CLEANUP_RETENTION_MINUTES)
-        return layout("已保存", "<div class=msg>已保存，不会自动重启；修改 Token、管理员 ID、端口或监听地址后请重启。</div><p><a class=btn href='/settings'>返回</a> <a class=btn href='/restart'>重启机器人</a></p>")
+        return layout("已保存", "<div class=msg>已保存，不会自动重启；面板公网地址会立即用于新生成的 Telegram 链接，修改 Token、管理员 ID、端口或监听地址后请重启。</div><p><a class=btn href='/settings'>返回</a> <a class=btn href='/restart'>重启机器人</a></p>")
 
 
     @app.get("/send", response_class=HTMLResponse)
@@ -4484,14 +4494,14 @@ async function logoutTgSession() {{
 <h3>TG 用户会话（可选）</h3><p class=muted>仅用于 TG 群监听来源=用户会话。修改后需重启。</p>
 <div class=grid><div><label>TG_API_ID</label><input name=TG_API_ID value='{html_escape(v['TG_API_ID'])}'></div><div><label>TG_API_HASH</label><input name=TG_API_HASH value='{html_escape(v['TG_API_HASH'])}'></div></div>
 <label>TG_API_SESSION</label><textarea name=TG_API_SESSION>{html_escape(v['TG_API_SESSION'])}</textarea>
-<div class=grid><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
-<div class=msg>公网提示：监听地址填 <code>0.0.0.0</code> 会监听所有网卡；Docker 是否暴露公网还取决于 <code>docker-compose.yml</code> 的端口映射和服务器防火墙。</div>
+<div class=grid><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板公网地址</label><input name=WEB_PANEL_PUBLIC_URL value='{html_escape(v['WEB_PANEL_PUBLIC_URL'])}' placeholder='https://tg.aikin.kdns.fr'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
+<div class=msg>公网地址用于 Telegram 菜单、打开面板按钮和在面板新增等外部链接；监听地址仍是服务器内部绑定地址。监听地址填 <code>0.0.0.0</code> 会监听所有网卡，Docker 是否暴露公网还取决于 <code>docker-compose.yml</code> 的端口映射和服务器防火墙。</div>
 <input type=hidden name=WEB_PANEL_ENABLED value='true'><div class=form-actions><button class='btn primary' type=submit>保存配置</button> <a class=btn href='/restart'>重启机器人</a></div></form></div>"""
         body = settings_card + "<div class=card><h2>用户管理</h2><table><tr><th>用户</th><th>状态</th><th>备注</th><th>操作</th></tr>" + "".join(trs) + "</table></div>"
         return layout("用户管理", body)
 
     @app.post("/users/settings", response_class=HTMLResponse)
-    async def users_settings_save(_: str = Depends(panel_auth), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin")) -> str:
+    async def users_settings_save(_: str = Depends(panel_auth), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PUBLIC_URL: str = Form(""), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin")) -> str:
         cleanup = (cfg_load_fresh().get("cleanup") or {})
         save_panel_settings(
             locals() | {"WEB_PANEL_ENABLED": WEB_PANEL_ENABLED},
@@ -4499,7 +4509,7 @@ async function logoutTgSession() {{
             int(cleanup.get("monitor_message_delete_after_minutes", 60)),
             int(cleanup.get("monitor_retention_minutes", 1440)),
         )
-        return layout("已保存", "<div class=msg>已保存，不会自动重启；修改 Token、管理员 ID、端口、监听地址、账号或密码后请重启。</div><p><a class=btn href='/users'>返回用户管理</a> <a class=btn href='/restart'>重启机器人</a></p>")
+        return layout("已保存", "<div class=msg>已保存，不会自动重启；面板公网地址会立即用于新生成的 Telegram 链接，修改 Token、管理员 ID、端口、监听地址、账号或密码后请重启。</div><p><a class=btn href='/users'>返回用户管理</a> <a class=btn href='/restart'>重启机器人</a></p>")
 
     @app.post("/api/tg-login/qr")
     async def api_tg_login_qr(_: str = Depends(panel_auth)) -> dict[str, Any]:
