@@ -3653,11 +3653,11 @@ label{{display:block;margin:10px 0 5px;color:var(--ink);font-weight:600;font-siz
 .check-row input{{width:auto}}
 small,.muted{{color:var(--muted);line-height:1.5;font-weight:500}}
 .field-hint{{display:block;margin:-4px 0 14px;font-size:12px}}
-table{{display:block;width:100%;max-width:100%;border-collapse:collapse;background:rgba(255,255,255,.5);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-gutter:stable}}
-td,th{{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top;overflow-wrap:anywhere;word-break:break-word}}
+table{{width:100%;max-width:100%;border-collapse:collapse;background:rgba(255,255,255,.5);table-layout:auto}}
+td,th{{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top;min-width:64px;max-width:480px;overflow-wrap:anywhere;word-break:break-word}}
 th{{color:var(--ink);font-size:12px;background:rgba(59,91,219,.06);text-transform:none;letter-spacing:0;font-weight:700}}
 tr:nth-child(even) td{{background:rgba(20,22,28,.025)}}
-.badge{{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:12px;font-weight:700;text-transform:none}}
+.badge{{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:12px;font-weight:700;text-transform:none;white-space:nowrap}}
 .badge.warn{{background:rgba(232,180,32,.16);color:#8a6d00;border-color:transparent}}
 .msg{{padding:11px 12px;border:1px solid rgba(232,180,32,.4);border-radius:8px;background:rgba(232,180,32,.12);color:var(--ink);margin:10px 0;font-weight:600;box-shadow:none}}
 .step{{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.5);padding:14px;margin:14px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 4px 16px rgba(20,22,28,.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}}
@@ -3700,12 +3700,11 @@ html[data-theme="dark"] .brand,html[data-theme="dark"] .top,html[data-theme="dar
 @keyframes mainIn{{from{{opacity:.0;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
 @keyframes floatA{{from{{transform:translateY(0)}}to{{transform:translateY(-12px)}}}}
 @keyframes floatB{{from{{transform:translateY(0)}}to{{transform:translateY(-10px)}}}}
-@media(max-width:1100px){{
+@media(max-width:860px){{
   .shell{{grid-template-columns:1fr}}
   aside{{position:relative;height:auto;overflow:visible}}
-  nav{{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  nav{{grid-template-columns:repeat(2,minmax(0,1fr))}}
   nav section{{min-width:0}}
-  nav section>a{{white-space:normal}}
   main{{padding:18px}}
   .top{{align-items:flex-start;flex-direction:column}}
 }}
@@ -3718,7 +3717,8 @@ html[data-theme="dark"] .brand,html[data-theme="dark"] .top,html[data-theme="dar
   .actions{{width:100%}}
   .actions .btn{{text-align:center}}
   td,th{{padding:8px}}
-  table{{font-size:13px}}
+  table{{display:block;overflow-x:auto}}
+  td,th{{max-width:360px}}
 }}
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
