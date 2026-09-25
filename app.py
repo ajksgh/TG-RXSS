@@ -3233,9 +3233,10 @@ tr:nth-child(even) td{{background:#fafafa}}
 .step-title{{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:18px;font-weight:900}}
 .step-no{{display:inline-grid;place-items:center;width:30px;height:30px;border:3px solid var(--ink);background:var(--yellow);font-weight:900}}
 pre{{white-space:pre-wrap;background:#121212;color:#fff;padding:13px;border:4px solid var(--ink);max-height:420px;overflow:auto;box-shadow:5px 5px 0 var(--yellow)}}
-.friend-links{{margin-top:18px;padding-top:12px;border-top:3px solid var(--ink);display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
-.friend-links b{{font-size:12px;font-weight:900;text-transform:uppercase}}
-.friend-links a{{font-weight:900}}
+.bot-links{{margin-top:18px;padding-top:12px;border-top:1px solid var(--gray);display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
+.bot-links b{{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}}
+.bot-links a{{font-weight:700;color:var(--blue)}}
+.bot-links a:hover{{text-decoration:underline}}
 html[data-theme='dark'] body{{background:radial-gradient(ellipse at top,#121426 0%,#050506 52%,#020203 100%)}}
 html[data-theme='dark'] body:before{{right:-210px;top:-180px;width:680px;height:680px;border:0;background:rgba(94,106,210,.22);filter:blur(120px);animation:floatA 10s var(--ease) infinite alternate}}
 html[data-theme='dark'] body:after{{left:-190px;bottom:-210px;width:620px;height:620px;border:0;border-radius:50%;background:rgba(104,114,217,.14);filter:blur(110px);animation:floatB 11s var(--ease) infinite alternate}}
@@ -3245,7 +3246,7 @@ html[data-theme='dark'] .card:before,html[data-theme='dark'] .step:before,html[d
 html[data-theme='dark'] .card:hover:before,html[data-theme='dark'] .step:hover:before,html[data-theme='dark'] nav section:hover:before{{opacity:1}}
 html[data-theme='dark'] .card>*,html[data-theme='dark'] .step>*,html[data-theme='dark'] nav section>*{{position:relative;z-index:1}}
 html[data-theme='dark'] .card:after{{display:none}}
-html[data-theme='dark'] .brand,html[data-theme='dark'] .top,html[data-theme='dark'] h3,html[data-theme='dark'] .friend-links{{border-color:rgba(255,255,255,.08)}}
+html[data-theme='dark'] .brand,html[data-theme='dark'] .top,html[data-theme='dark'] h3,html[data-theme='dark'] .bot-links{{border-color:rgba(255,255,255,.08)}}
 html[data-theme='dark'] nav a,html[data-theme='dark'] .btn,html[data-theme='dark'] input,html[data-theme='dark'] select,html[data-theme='dark'] textarea,html[data-theme='dark'] table,html[data-theme='dark'] td,html[data-theme='dark'] th,html[data-theme='dark'] .badge,html[data-theme='dark'] .check-row label,html[data-theme='dark'] .msg,html[data-theme='dark'] .mark,html[data-theme='dark'] .step-no{{border-color:rgba(255,255,255,.10);box-shadow:0 0 0 1px rgba(255,255,255,.035),0 10px 28px rgba(0,0,0,.28)}}
 html[data-theme='dark'] nav a,html[data-theme='dark'] .btn,html[data-theme='dark'] input,html[data-theme='dark'] select,html[data-theme='dark'] textarea{{border-radius:8px;background:rgba(255,255,255,.055)}}
 html[data-theme='dark'] nav a:hover,html[data-theme='dark'] .btn:hover{{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.36),0 0 34px rgba(94,106,210,.15)}}
@@ -3271,7 +3272,7 @@ html[data-theme='dark'] pre{{background:#09090b;border-color:rgba(255,255,255,.0
   *,*::before,*::after{{animation:none!important;transition:none!important}}
 }}
 </style></head><body><div class=shell><aside><div class=brand><div class=mark><i></i></div><div><b>tg-watchbot</b><small>Telegram 自动化</small></div></div><nav><section><b>常用</b><a href='/'>总览</a><a href='/inbox'>收件箱</a><a href='/users'>用户</a><a href='/send'>发消息</a></section><section><b>转发</b><a href='/group-monitors'>群监听</a><a href='/monitor/events'>历史</a></section><section><b>设置</b><a href='/settings'>面板设置</a><a href='/yaml'>YAML</a><a href='/config/export'>导入导出</a></section><section><b>系统</b><a href='/update'>更新</a><a href='/logs'>日志</a><a href='/restart' onclick='return confirm("确定重启机器人服务？")'>重启</a><a class=logout href='/logout'>退出</a></section></nav></aside><main><div class=top><h1>{html_escape(title)}</h1><div class=top-actions><button class='btn theme-toggle' type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><span class=badge>WatchBot Panel</span></div></div>
-{body}<div class=friend-links><b>友链</b><a href='https://linux.do' target='_blank' rel='noopener noreferrer'>Linux.do</a><span>·</span><a href='https://www.nodeseek.com' target='_blank' rel='noopener noreferrer'>NodeSeek</a></div></main></div>{theme_interaction_script()}</body></html>"""
+{body}<div class=bot-links><b>Telegram 机器人</b><a href='https://t.me/AGsykin_bot' target='_blank' rel='noopener noreferrer'>@AGsykin_bot</a></div></main></div>{theme_interaction_script()}</body></html>"""
 
 
 def monitor_form_html(m: dict[str, Any] | None = None, idx: int | None = None) -> str:
