@@ -2853,44 +2853,42 @@ def login_page(error: str = "") -> str:
 <link rel=icon href="{app_icon_data_uri()}">
 {theme_boot_script()}
 <style>
-:root{{color-scheme:light;--canvas:#f0f0f0;--ink:#121212;--muted:#5c5c5c;--red:#d02020;--blue:#1040c0;--yellow:#f0c020;--white:#fff;--ease:cubic-bezier(.2,.8,.2,1)}}
-html[data-theme='dark']{{color-scheme:dark;--canvas:#050506;--ink:#EDEDEF;--muted:#8A8F98;--red:#ff6363;--blue:#5E6AD2;--yellow:#d7c56b;--white:rgba(255,255,255,.055)}}
+:root{{color-scheme:light;--canvas:#f4f6fb;--ink:#14161c;--muted:#5c6370;--red:#d02020;--blue:#3b5bdb;--yellow:#e8b420;--white:rgba(255,255,255,.72);--line:rgba(20,22,28,.10);--ease:cubic-bezier(.2,.8,.2,1)}}
+html[data-theme="dark"]{{color-scheme:dark;--canvas:#0b0d13;--ink:#EDEDEF;--muted:#8A8F98;--red:#ff6363;--blue:#5E6AD2;--yellow:#d7c56b;--white:rgba(255,255,255,.055);--line:rgba(255,255,255,.09)}}
 *{{box-sizing:border-box}}
-body{{margin:0;min-height:100vh;font-family:Outfit,Aptos,'Segoe UI',sans-serif;background:var(--canvas);color:var(--ink);display:grid;place-items:center;padding:24px;overflow:hidden}}
-body:before{{content:"";position:fixed;inset:auto auto -90px -70px;width:220px;height:220px;border:4px solid var(--ink);border-radius:50%;background:var(--yellow);z-index:-1;animation:floatA 5.5s var(--ease) infinite alternate}}
-body:after{{content:"";position:fixed;top:54px;right:8vw;width:150px;height:150px;background:var(--blue);border:4px solid var(--ink);transform:rotate(12deg);z-index:-1;animation:floatB 6.5s var(--ease) infinite alternate}}
-.login-card{{position:relative;width:min(420px,100%);padding:32px;border:4px solid var(--ink);border-radius:0;background:var(--white);box-shadow:8px 8px 0 var(--ink);contain:paint;will-change:transform;animation:cardIn .28s var(--ease)}}
-.login-card:after{{content:"";position:absolute;right:22px;top:22px;width:24px;height:24px;background:var(--red);clip-path:polygon(50% 0,0 100%,100% 100%)}}
-.logo{{width:58px;height:58px;border:4px solid var(--ink);background:var(--white);position:relative;margin-bottom:22px;box-shadow:4px 4px 0 var(--ink);transition:transform .22s var(--ease);will-change:transform}}
-.logo:before{{content:"";position:absolute;left:8px;top:8px;width:18px;height:18px;border:3px solid var(--ink);border-radius:50%;background:var(--red)}}
-.logo:after{{content:"";position:absolute;right:7px;top:8px;width:18px;height:18px;border:3px solid var(--ink);background:var(--blue)}}
-.logo i{{position:absolute;left:13px;bottom:7px;width:30px;height:22px;background:var(--yellow);border:3px solid var(--ink);clip-path:polygon(50% 0,0 100%,100% 100%)}}
+body{{margin:0;min-height:100vh;font-family:Outfit,Aptos,"Segoe UI",sans-serif;background:var(--canvas);color:var(--ink);display:grid;place-items:center;padding:24px;overflow:hidden}}
+body:before{{content:"";position:fixed;right:-140px;top:-120px;width:420px;height:420px;border-radius:50%;background:rgba(59,91,219,.14);filter:blur(80px);z-index:-1;animation:floatA 8s var(--ease) infinite alternate}}
+body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:420px;height:420px;border-radius:50%;background:rgba(212,110,60,.10);filter:blur(90px);z-index:-1;animation:floatB 10s var(--ease) infinite alternate}}
+.login-card{{position:relative;width:min(420px,100%);padding:32px 28px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.78);box-shadow:0 18px 50px rgba(20,22,28,.10);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:cardIn .28s var(--ease)}}
+.login-card:after{{display:none}}
+.logo{{width:52px;height:52px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;margin-bottom:20px;transition:transform .22s var(--ease)}}
+.logo:before{{content:"";width:18px;height:18px;border-radius:50%;background:var(--blue)}}
+.logo:after,.logo i{{display:none}}
 .login-card:hover .logo{{transform:translateY(-1px)}}
-h1{{margin:0 0 8px;font-size:34px;line-height:.95;text-transform:uppercase;color:var(--ink);letter-spacing:0;font-weight:900}}
-p{{margin:0 0 24px;color:var(--muted);line-height:1.5;font-weight:500}}
-label{{display:block;margin:14px 0 7px;color:var(--ink);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}}
-input{{width:100%;border:3px solid var(--ink);border-radius:0;background:#fff;color:var(--ink);padding:12px 13px;font-size:15px;outline:none;transition:transform .16s var(--ease),box-shadow .16s var(--ease);will-change:transform}}
-input:focus{{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--blue)}}
-button{{width:100%;margin-top:22px;border:3px solid var(--ink);border-radius:0;padding:12px 16px;background:var(--red);color:white;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .16s var(--ease),background-color .16s var(--ease);will-change:transform}}
-button:hover{{transform:translate(-1px,-1px);background:#bc1c1c}}
-button:active{{transform:translate(2px,2px)}}
-.theme-toggle{{position:fixed;right:20px;top:20px;width:40px;height:40px;margin:0;padding:0;border-radius:8px;background:var(--white);color:var(--ink);z-index:2}}
-.login-error{{background:#fff;border:3px solid var(--ink);color:var(--red);padding:10px 12px;margin-bottom:16px;font-weight:800;box-shadow:4px 4px 0 var(--red)}}
-.foot{{margin-top:18px;color:var(--muted);font-size:13px;text-align:center;font-weight:700}}
-html[data-theme='dark'] body{{background:radial-gradient(ellipse at top,#121426 0%,#050506 54%,#020203 100%)}}
-html[data-theme='dark'] body:before{{inset:-180px auto auto -160px;width:560px;height:560px;border:0;background:rgba(94,106,210,.24);filter:blur(100px)}}
-html[data-theme='dark'] body:after{{top:auto;right:-180px;bottom:-150px;width:520px;height:520px;border:0;border-radius:50%;background:rgba(104,114,217,.18);filter:blur(95px)}}
-html[data-theme='dark'] .login-card{{border:1px solid rgba(255,255,255,.08);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035));box-shadow:0 0 0 1px rgba(255,255,255,.04),0 22px 70px rgba(0,0,0,.55),0 0 90px rgba(94,106,210,.12);backdrop-filter:blur(18px)}}
-html[data-theme='dark'] .login-card:after{{display:none}}
-html[data-theme='dark'] .logo,html[data-theme='dark'] input,html[data-theme='dark'] button{{border-color:rgba(255,255,255,.10);box-shadow:0 0 0 1px rgba(255,255,255,.04),0 10px 30px rgba(0,0,0,.35)}}
-html[data-theme='dark'] input{{background:#0f0f12}}
-html[data-theme='dark'] input:focus{{box-shadow:0 0 0 3px rgba(94,106,210,.25),0 0 32px rgba(94,106,210,.18)}}
-html[data-theme='dark'] button{{background:var(--blue)}}
-html[data-theme='dark'] button:hover{{background:#6872D9}}
-html[data-theme='dark'] .theme-toggle{{background:rgba(255,255,255,.06)}}
+h1{{margin:0 0 8px;font-size:24px;line-height:1.1;text-transform:none;color:var(--ink);letter-spacing:0;font-weight:800}}
+p{{margin:0 0 22px;color:var(--muted);line-height:1.5;font-weight:500}}
+label{{display:block;margin:14px 0 7px;color:var(--ink);font-size:12px;font-weight:600;text-transform:none;letter-spacing:0}}
+input{{width:100%;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.9);color:var(--ink);padding:11px 12px;font-size:14px;font-weight:500;outline:none;transition:border-color .16s var(--ease),box-shadow .16s var(--ease)}}
+input:focus{{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,91,219,.14)}}
+button{{width:100%;margin-top:22px;border:1px solid transparent;border-radius:8px;padding:11px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:14px;text-transform:none;letter-spacing:0;cursor:pointer;box-shadow:0 6px 20px rgba(59,91,219,.25);transition:background-color .16s var(--ease)}}
+button:hover{{background:#3352c7}}
+button:active{{transform:translateY(1px)}}
+.theme-toggle{{position:fixed;right:20px;top:20px;width:36px;height:36px;margin:0;padding:0;border-radius:8px;background:rgba(255,255,255,.7);color:var(--ink);border:1px solid var(--line);z-index:2;box-shadow:none}}
+.login-error{{background:rgba(208,32,32,.08);border:1px solid rgba(208,32,32,.3);color:var(--red);padding:10px 12px;margin-bottom:16px;font-weight:600;border-radius:8px;box-shadow:none}}
+.foot{{margin-top:18px;color:var(--muted);font-size:12px;text-align:center;font-weight:500}}
+html[data-theme="dark"] body{{background:radial-gradient(ellipse at top,#151830 0%,#0b0d13 54%,#050508 100%)}}
+html[data-theme="dark"] body:before{{background:rgba(94,106,210,.22);filter:blur(100px)}}
+html[data-theme="dark"] body:after{{background:rgba(104,114,217,.16);filter:blur(95px)}}
+html[data-theme="dark"] .login-card{{border:1px solid var(--line);background:rgba(18,20,30,.6);box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 90px rgba(94,106,210,.10);backdrop-filter:blur(18px)}}
+html[data-theme="dark"] .logo{{background:rgba(94,106,210,.2)}}
+html[data-theme="dark"] input{{background:rgba(15,15,18,.7);border-color:var(--line)}}
+html[data-theme="dark"] input:focus{{box-shadow:0 0 0 3px rgba(94,106,210,.22);border-color:rgba(94,106,210,.55)}}
+html[data-theme="dark"] button{{background:var(--blue);box-shadow:0 6px 20px rgba(94,106,210,.3)}}
+html[data-theme="dark"] button:hover{{background:#6872D9}}
+html[data-theme="dark"] .theme-toggle{{background:rgba(255,255,255,.06)}}
 @keyframes cardIn{{from{{opacity:.0;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
-@keyframes floatA{{from{{transform:translateY(0)}}to{{transform:translateY(-8px)}}}}
-@keyframes floatB{{from{{transform:rotate(12deg) translateY(0)}}to{{transform:rotate(12deg) translateY(-9px)}}}}
+@keyframes floatA{{from{{transform:translateY(0)}}to{{transform:translateY(-12px)}}}}
+@keyframes floatB{{from{{transform:translateY(0)}}to{{transform:translateY(-10px)}}}}
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
 }}
@@ -3161,112 +3159,116 @@ def layout(title: str, body: str) -> str:
 <link rel=icon href="{app_icon_data_uri()}">
 {theme_boot_script()}
 <style>
-:root{{color-scheme:light;--canvas:#f0f0f0;--ink:#121212;--muted:#5c5c5c;--red:#d02020;--blue:#1040c0;--yellow:#f0c020;--white:#fff;--gray:#e0e0e0;--ease:cubic-bezier(.2,.8,.2,1)}}
-html[data-theme='dark']{{color-scheme:dark;--canvas:#050506;--ink:#EDEDEF;--muted:#8A8F98;--red:#ff6363;--blue:#5E6AD2;--yellow:#d7c56b;--white:rgba(255,255,255,.055);--gray:rgba(255,255,255,.08)}}
+:root{{color-scheme:light;--canvas:#f4f6fb;--ink:#14161c;--muted:#5c6370;--red:#d02020;--blue:#3b5bdb;--yellow:#e8b420;--white:rgba(255,255,255,.72);--line:rgba(20,22,28,.10);--ease:cubic-bezier(.2,.8,.2,1)}}
+html[data-theme="dark"]{{color-scheme:dark;--canvas:#0b0d13;--ink:#EDEDEF;--muted:#8A8F98;--red:#ff6363;--blue:#5E6AD2;--yellow:#d7c56b;--white:rgba(255,255,255,.055);--line:rgba(255,255,255,.09)}}
 *{{box-sizing:border-box}}
-body{{font-family:Outfit,Aptos,'Segoe UI',sans-serif;background:var(--canvas);color:var(--ink);margin:0;letter-spacing:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}}
-body:before{{content:"";position:fixed;right:-70px;top:110px;width:190px;height:190px;border:4px solid var(--ink);border-radius:50%;background:var(--yellow);z-index:-1;animation:floatA 7s var(--ease) infinite alternate}}
-body:after{{content:"";position:fixed;left:190px;bottom:-80px;width:190px;height:190px;border:4px solid var(--ink);background:var(--blue);transform:rotate(45deg);z-index:-1;animation:floatB 8s var(--ease) infinite alternate}}
+body{{font-family:Outfit,Aptos,"Segoe UI",sans-serif;background:var(--canvas);color:var(--ink);margin:0;letter-spacing:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}}
+body:before{{content:"";position:fixed;right:-140px;top:-120px;width:420px;height:420px;border-radius:50%;background:rgba(59,91,219,.14);filter:blur(80px);z-index:-1;animation:floatA 9s var(--ease) infinite alternate}}
+body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:420px;height:420px;border-radius:50%;background:rgba(212,110,60,.10);filter:blur(90px);z-index:-1;animation:floatB 11s var(--ease) infinite alternate}}
 a{{color:var(--ink);text-decoration:none}}
 a:hover{{text-decoration:underline}}
-.shell{{display:grid;grid-template-columns:254px minmax(0,1fr);min-height:100vh}}
-aside{{border-right:4px solid var(--ink);background:var(--white);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;overscroll-behavior:contain}}
+.shell{{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}}
+aside{{border-right:1px solid var(--line);background:rgba(255,255,255,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;overscroll-behavior:contain}}
 main{{padding:24px 30px;min-width:0;max-width:1440px;animation:mainIn .25s var(--ease)}}
-.brand{{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 4px 16px;border-bottom:4px solid var(--ink)}}
-.mark{{width:44px;height:44px;border:4px solid var(--ink);background:var(--white);position:relative;box-shadow:4px 4px 0 var(--ink);flex:0 0 auto;transition:transform .2s var(--ease);will-change:transform}}
-.mark:before{{content:"";position:absolute;left:5px;top:5px;width:13px;height:13px;border:3px solid var(--ink);border-radius:50%;background:var(--red)}}
-.mark:after{{content:"";position:absolute;right:4px;top:5px;width:13px;height:13px;border:3px solid var(--ink);background:var(--blue)}}
-.mark i{{position:absolute;left:8px;bottom:4px;width:25px;height:18px;background:var(--yellow);border:3px solid var(--ink);clip-path:polygon(50% 0,0 100%,100% 100%)}}
+.brand{{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 4px 16px;border-bottom:1px solid var(--line)}}
+.mark{{width:44px;height:44px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;flex:0 0 auto;transition:transform .2s var(--ease)}}
+.mark:before{{content:"";width:16px;height:16px;border-radius:50%;background:var(--blue)}}
+.mark i{{display:none}}
 .brand:hover .mark{{transform:translateY(-1px)}}
-.brand b{{font-size:18px;color:var(--ink);font-weight:900;text-transform:uppercase}}
-.brand small{{display:block;color:var(--muted);margin-top:2px;font-weight:700}}
-nav{{display:grid;gap:13px}}
-nav section{{display:grid;gap:6px;padding:9px;border:3px solid var(--ink);background:#fff;box-shadow:3px 3px 0 var(--ink);transition:transform .18s var(--ease);contain:paint}}
-nav section:hover{{transform:translateY(-1px)}}
-nav section>b{{display:inline-block;width:max-content;margin:-12px 0 2px -2px;padding:3px 8px;border:3px solid var(--ink);background:var(--yellow);font-size:12px;font-weight:900;text-transform:uppercase}}
-nav a{{position:relative;padding:9px 10px;border:3px solid var(--ink);background:var(--white);color:var(--ink);font-weight:900;text-transform:uppercase;font-size:12px;box-shadow:2px 2px 0 var(--ink);transition:transform .14s var(--ease),box-shadow .14s var(--ease),background-color .14s var(--ease);will-change:transform}}
-nav section:nth-child(2)>b{{background:var(--blue);color:white}}
-nav section:nth-child(3)>b{{background:var(--red);color:white}}
-nav section:nth-child(4)>b{{background:var(--gray)}}
-nav a:hover{{text-decoration:none;transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}}
-nav a:active{{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink)}}
-.logout{{background:var(--red)!important;color:white}}
-.top{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;border-bottom:4px solid var(--ink);padding-bottom:14px}}
-.top h1{{margin:0;font-size:34px;line-height:.95;color:var(--ink);font-weight:900;text-transform:uppercase}}
+.brand b{{font-size:16px;color:var(--ink);font-weight:800}}
+.brand small{{display:block;color:var(--muted);margin-top:2px;font-weight:600}}
+nav{{display:grid;gap:14px}}
+nav section{{display:grid;gap:4px;padding:10px;border-radius:12px;background:rgba(255,255,255,.45);box-shadow:0 1px 2px rgba(20,22,28,.04)}}
+nav section>b{{display:inline-block;width:max-content;margin:0 0 4px 2px;padding:2px 8px;border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}}
+nav a{{position:relative;padding:8px 10px;border-radius:8px;background:transparent;color:var(--ink);font-weight:600;text-transform:none;font-size:13px;transition:background-color .14s var(--ease)}}
+nav section:nth-child(2)>b{{background:rgba(212,64,64,.10);color:var(--red)}}
+nav section:nth-child(3)>b{{background:rgba(59,91,219,.12);color:var(--blue)}}
+nav section:nth-child(4)>b{{background:rgba(232,180,32,.16);color:#8a6d00}}
+nav a:hover{{text-decoration:none;background:rgba(20,22,28,.05)}}
+.logout{{color:var(--red)!important}}
+.top{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--line)}}
+.top h1{{margin:0;font-size:26px;line-height:1.1;color:var(--ink);font-weight:800;text-transform:none;letter-spacing:0}}
 .top-actions{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
-.top .badge{{background:var(--blue);color:white}}
-.theme-toggle{{width:36px;height:36px;padding:0;border-radius:8px;display:inline-grid;place-items:center}}
-.btn{{background:var(--white);color:var(--ink);padding:7px 11px;border:3px solid var(--ink);border-radius:0;display:inline-block;cursor:pointer;font-weight:900;line-height:1.35;text-transform:uppercase;font-size:12px;box-shadow:3px 3px 0 var(--ink);transition:transform .14s var(--ease),box-shadow .14s var(--ease),background-color .14s var(--ease);will-change:transform}}
-.btn:hover{{text-decoration:none;transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}}
-.btn:active{{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}}
-.btn.primary{{background:var(--red);color:white}}
-.btn.danger{{background:var(--red);color:white}}
-.btn.ok{{background:var(--yellow);color:var(--ink)}}
+.top .badge{{background:rgba(59,91,219,.12);color:var(--blue)}}
+.theme-toggle{{width:34px;height:34px;padding:0;border-radius:8px;display:inline-grid;place-items:center}}
+.btn{{background:rgba(255,255,255,.85);color:var(--ink);padding:7px 12px;border:1px solid var(--line);border-radius:8px;display:inline-block;cursor:pointer;font-weight:600;line-height:1.35;text-transform:none;font-size:13px;transition:transform .14s var(--ease),box-shadow .14s var(--ease),background-color .14s var(--ease)}}
+.btn:hover{{text-decoration:none;transform:translateY(-1px);box-shadow:0 4px 14px rgba(20,22,28,.08)}}
+.btn:active{{transform:translateY(0)}}
+.btn.primary{{background:var(--blue);border-color:transparent;color:#fff}}
+.btn.danger{{background:var(--red);border-color:transparent;color:#fff}}
+.btn.ok{{background:rgba(232,180,32,.9);border-color:transparent;color:#3a2f00}}
 .actions{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
-.card{{position:relative;background:var(--white);border:4px solid var(--ink);border-radius:0;padding:18px;margin:16px 0;box-shadow:8px 8px 0 var(--ink);transition:transform .2s var(--ease);contain:paint}}
-.card:hover{{transform:translateY(-1px)}}
-.card:after{{content:"";position:absolute;top:12px;right:12px;width:14px;height:14px;background:var(--red);border:3px solid var(--ink)}}
-.toolbar{{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;padding-right:34px}}
+.card{{position:relative;background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0;box-shadow:0 6px 24px rgba(20,22,28,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}}
+.card:after{{display:none}}
+.toolbar{{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}}
 .form-actions{{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 0}}
-h2,h3{{font-weight:900;text-transform:uppercase;letter-spacing:0}}
-h2{{font-size:24px}}
-h3{{font-size:16px;border-bottom:3px solid var(--ink);padding-bottom:6px;margin-top:20px}}
-input,select,textarea{{width:100%;box-sizing:border-box;background:#fff;color:var(--ink);border:3px solid var(--ink);border-radius:0;padding:10px 11px;outline:none;font-size:14px;font-weight:600;transition:transform .14s var(--ease),box-shadow .14s var(--ease);will-change:transform}}
-input:focus,select:focus,textarea:focus{{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--blue)}}
-textarea{{min-height:116px;font-family:'Cascadia Mono',Consolas,monospace}}
-label{{display:block;margin:10px 0 5px;color:var(--ink);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.06em}}
+h2,h3{{font-weight:800;text-transform:none;letter-spacing:0}}
+h2{{font-size:22px}}
+h3{{font-size:15px;border-bottom:1px solid var(--line);padding-bottom:6px;margin-top:20px}}
+input,select,textarea{{width:100%;box-sizing:border-box;background:rgba(255,255,255,.9);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;font-size:14px;font-weight:500;transition:border-color .14s var(--ease),box-shadow .14s var(--ease)}}
+input:focus,select:focus,textarea:focus{{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,91,219,.14)}}
+textarea{{min-height:116px;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace}}
+label{{display:block;margin:10px 0 5px;color:var(--ink);font-weight:600;font-size:12px;text-transform:none;letter-spacing:0}}
 .check-row{{display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
-.check-row label{{display:flex;gap:7px;align-items:center;margin:0;padding:8px 10px;border:3px solid var(--ink);background:var(--gray);transition:transform .14s var(--ease)}}
-.check-row label:hover{{transform:translateY(-1px)}}
+.check-row label{{display:flex;gap:7px;align-items:center;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.6);transition:background-color .14s var(--ease)}}
+.check-row label:hover{{background:rgba(59,91,219,.06)}}
 .check-row input{{width:auto}}
-small,.muted{{color:var(--muted);line-height:1.5;font-weight:600}}
+small,.muted{{color:var(--muted);line-height:1.5;font-weight:500}}
 .field-hint{{display:block;margin:-4px 0 14px;font-size:12px}}
-table{{width:100%;border-collapse:collapse;border:3px solid var(--ink);background:white}}
-td,th{{border:3px solid var(--ink);padding:10px;text-align:left;vertical-align:top}}
-th{{color:var(--ink);font-size:12px;background:var(--yellow);text-transform:uppercase;letter-spacing:.06em}}
-tr:nth-child(even) td{{background:#fafafa}}
-.badge{{padding:4px 8px;border:3px solid var(--ink);border-radius:999px;background:var(--blue);color:white;font-size:12px;font-weight:900;text-transform:uppercase}}
-.badge.warn{{background:var(--yellow);color:var(--ink)}}
-.msg{{padding:11px 12px;border:3px solid var(--ink);background:var(--yellow);color:var(--ink);margin:10px 0;font-weight:900;box-shadow:4px 4px 0 var(--ink)}}
-.step{{border:3px solid var(--ink);background:#fff;padding:14px;margin:14px 0;box-shadow:4px 4px 0 var(--ink)}}
-.step-title{{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:18px;font-weight:900}}
-.step-no{{display:inline-grid;place-items:center;width:30px;height:30px;border:3px solid var(--ink);background:var(--yellow);font-weight:900}}
-pre{{white-space:pre-wrap;background:#121212;color:#fff;padding:13px;border:4px solid var(--ink);max-height:420px;overflow:auto;box-shadow:5px 5px 0 var(--yellow)}}
-.bot-links{{margin-top:18px;padding-top:12px;border-top:1px solid var(--gray);display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
-.bot-links b{{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}}
+table{{width:100%;border-collapse:collapse;background:rgba(255,255,255,.6)}}
+td,th{{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}}
+th{{color:var(--ink);font-size:12px;background:rgba(59,91,219,.06);text-transform:none;letter-spacing:0;font-weight:700}}
+tr:nth-child(even) td{{background:rgba(20,22,28,.025)}}
+.badge{{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:12px;font-weight:700;text-transform:none}}
+.badge.warn{{background:rgba(232,180,32,.16);color:#8a6d00;border-color:transparent}}
+.msg{{padding:11px 12px;border:1px solid rgba(232,180,32,.4);border-radius:8px;background:rgba(232,180,32,.12);color:var(--ink);margin:10px 0;font-weight:600;box-shadow:none}}
+.step{{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.55);padding:14px;margin:14px 0;box-shadow:0 4px 16px rgba(20,22,28,.04)}}
+.step-title{{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:16px;font-weight:800}}
+.step-no{{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(59,91,219,.12);color:var(--blue);font-weight:800}}
+pre{{white-space:pre-wrap;background:#14161c;color:#fff;padding:13px;border-radius:8px;max-height:420px;overflow:auto}}
+.bot-links{{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
+.bot-links b{{font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}}
 .bot-links a{{font-weight:700;color:var(--blue)}}
 .bot-links a:hover{{text-decoration:underline}}
-html[data-theme='dark'] body{{background:radial-gradient(ellipse at top,#121426 0%,#050506 52%,#020203 100%)}}
-html[data-theme='dark'] body:before{{right:-210px;top:-180px;width:680px;height:680px;border:0;background:rgba(94,106,210,.22);filter:blur(120px);animation:floatA 10s var(--ease) infinite alternate}}
-html[data-theme='dark'] body:after{{left:-190px;bottom:-210px;width:620px;height:620px;border:0;border-radius:50%;background:rgba(104,114,217,.14);filter:blur(110px);animation:floatB 11s var(--ease) infinite alternate}}
-html[data-theme='dark'] body{{background-image:radial-gradient(ellipse at top,#121426 0%,#050506 52%,#020203 100%),linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:auto,64px 64px,64px 64px}}
-html[data-theme='dark'] aside,html[data-theme='dark'] .card,html[data-theme='dark'] .step,html[data-theme='dark'] nav section{{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035));box-shadow:0 0 0 1px rgba(255,255,255,.035),0 18px 55px rgba(0,0,0,.42),0 0 70px rgba(94,106,210,.08);backdrop-filter:blur(18px)}}
-html[data-theme='dark'] .card:before,html[data-theme='dark'] .step:before,html[data-theme='dark'] nav section:before{{content:"";position:absolute;inset:0;z-index:0;background:radial-gradient(320px circle at var(--mx,50%) var(--my,0),rgba(94,106,210,.18),transparent 60%);opacity:0;transition:opacity .22s var(--ease);pointer-events:none}}
-html[data-theme='dark'] .card:hover:before,html[data-theme='dark'] .step:hover:before,html[data-theme='dark'] nav section:hover:before{{opacity:1}}
-html[data-theme='dark'] .card>*,html[data-theme='dark'] .step>*,html[data-theme='dark'] nav section>*{{position:relative;z-index:1}}
-html[data-theme='dark'] .card:after{{display:none}}
-html[data-theme='dark'] .brand,html[data-theme='dark'] .top,html[data-theme='dark'] h3,html[data-theme='dark'] .bot-links{{border-color:rgba(255,255,255,.08)}}
-html[data-theme='dark'] nav a,html[data-theme='dark'] .btn,html[data-theme='dark'] input,html[data-theme='dark'] select,html[data-theme='dark'] textarea,html[data-theme='dark'] table,html[data-theme='dark'] td,html[data-theme='dark'] th,html[data-theme='dark'] .badge,html[data-theme='dark'] .check-row label,html[data-theme='dark'] .msg,html[data-theme='dark'] .mark,html[data-theme='dark'] .step-no{{border-color:rgba(255,255,255,.10);box-shadow:0 0 0 1px rgba(255,255,255,.035),0 10px 28px rgba(0,0,0,.28)}}
-html[data-theme='dark'] nav a,html[data-theme='dark'] .btn,html[data-theme='dark'] input,html[data-theme='dark'] select,html[data-theme='dark'] textarea{{border-radius:8px;background:rgba(255,255,255,.055)}}
-html[data-theme='dark'] nav a:hover,html[data-theme='dark'] .btn:hover{{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.36),0 0 34px rgba(94,106,210,.15)}}
-html[data-theme='dark'] .btn.primary,html[data-theme='dark'] .btn.danger,html[data-theme='dark'] .top .badge{{background:var(--blue);color:#fff;box-shadow:0 0 0 1px rgba(94,106,210,.45),0 8px 24px rgba(94,106,210,.22),inset 0 1px 0 rgba(255,255,255,.16)}}
-html[data-theme='dark'] .btn.ok,html[data-theme='dark'] .step-no,html[data-theme='dark'] nav section>b{{background:rgba(94,106,210,.16);color:var(--ink)}}
-html[data-theme='dark'] input:focus,html[data-theme='dark'] select:focus,html[data-theme='dark'] textarea:focus{{box-shadow:0 0 0 3px rgba(94,106,210,.24),0 0 32px rgba(94,106,210,.18);border-color:rgba(94,106,210,.55)}}
-html[data-theme='dark'] table,html[data-theme='dark'] tr:nth-child(even) td{{background:rgba(255,255,255,.035)}}
-html[data-theme='dark'] th{{background:rgba(94,106,210,.18)}}
-html[data-theme='dark'] .msg{{background:rgba(215,197,107,.13);color:var(--ink)}}
-html[data-theme='dark'] pre{{background:#09090b;border-color:rgba(255,255,255,.08);box-shadow:0 16px 45px rgba(0,0,0,.38)}}
+html[data-theme="dark"] body{{background:radial-gradient(ellipse at top,#151830 0%,#0b0d13 52%,#050508 100%)}}
+html[data-theme="dark"] body:before{{background:rgba(94,106,210,.20);filter:blur(100px)}}
+html[data-theme="dark"] body:after{{background:rgba(104,114,217,.14);filter:blur(110px)}}
+html[data-theme="dark"] aside{{background:rgba(18,20,30,.6);border-color:var(--line)}}
+html[data-theme="dark"] nav section{{background:rgba(255,255,255,.045);box-shadow:0 1px 2px rgba(0,0,0,.25)}}
+html[data-theme="dark"] nav section>b{{background:rgba(94,106,210,.18);color:var(--blue)}}
+html[data-theme="dark"] nav section:nth-child(2)>b{{background:rgba(255,99,99,.14);color:var(--red)}}
+html[data-theme="dark"] nav section:nth-child(3)>b{{background:rgba(94,106,210,.18);color:var(--blue)}}
+html[data-theme="dark"] nav section:nth-child(4)>b{{background:rgba(215,197,107,.16);color:var(--yellow)}}
+html[data-theme="dark"] nav a:hover{{background:rgba(255,255,255,.06)}}
+html[data-theme="dark"] .card{{background:rgba(255,255,255,.055);border-color:var(--line);box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(16px)}}
+html[data-theme="dark"] .step{{background:rgba(255,255,255,.045);border-color:var(--line);box-shadow:0 4px 16px rgba(0,0,0,.3)}}
+html[data-theme="dark"] .btn,html[data-theme="dark"] .msg,html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea,html[data-theme="dark"] .badge,html[data-theme="dark"] .check-row label,html[data-theme="dark"] .mark,html[data-theme="dark"] .step-no,html[data-theme="dark"] table,html[data-theme="dark"] td,html[data-theme="dark"] th{{border-color:var(--line)}}
+html[data-theme="dark"] .btn{{background:rgba(255,255,255,.06)}}
+html[data-theme="dark"] .btn.primary{{background:var(--blue);box-shadow:0 6px 20px rgba(94,106,210,.3)}}
+html[data-theme="dark"] .btn.danger{{background:var(--red)}}
+html[data-theme="dark"] .btn.ok{{background:rgba(215,197,107,.9);color:#1a1400}}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{{background:rgba(15,15,18,.7)}}
+html[data-theme="dark"] input:focus,html[data-theme="dark"] select:focus,html[data-theme="dark"] textarea:focus{{box-shadow:0 0 0 3px rgba(94,106,210,.22);border-color:rgba(94,106,210,.55)}}
+html[data-theme="dark"] table,html[data-theme="dark"] tr:nth-child(even) td{{background:transparent}}
+html[data-theme="dark"] th{{background:rgba(94,106,210,.16);color:var(--ink)}}
+html[data-theme="dark"] .badge{{background:rgba(94,106,210,.2)}}
+html[data-theme="dark"] .badge.warn{{background:rgba(215,197,107,.16);color:var(--yellow)}}
+html[data-theme="dark"] .msg{{background:rgba(215,197,107,.1);border-color:rgba(215,197,107,.3);color:var(--ink)}}
+html[data-theme="dark"] .step-no{{background:rgba(94,106,210,.2);color:var(--blue)}}
+html[data-theme="dark"] .check-row label{{background:rgba(255,255,255,.05)}}
+html[data-theme="dark"] .check-row label:hover{{background:rgba(94,106,210,.12)}}
+html[data-theme="dark"] pre{{background:#0a0a0d;border:1px solid var(--line)}}
+html[data-theme="dark"] .brand,html[data-theme="dark"] .top,html[data-theme="dark"] h3,html[data-theme="dark"] .bot-links{{border-color:var(--line)}}
 @keyframes mainIn{{from{{opacity:.0;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
-@keyframes floatA{{from{{transform:translateY(0)}}to{{transform:translateY(-8px)}}}}
-@keyframes floatB{{from{{transform:rotate(45deg) translateY(0)}}to{{transform:rotate(45deg) translateY(-10px)}}}}
+@keyframes floatA{{from{{transform:translateY(0)}}to{{transform:translateY(-12px)}}}}
+@keyframes floatB{{from{{transform:translateY(0)}}to{{transform:translateY(-10px)}}}}
 @media(max-width:860px){{
   .shell{{grid-template-columns:1fr}}
   aside{{position:relative;height:auto}}
   main{{padding:18px}}
   nav{{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .top{{align-items:flex-start;flex-direction:column}}
-  .card{{box-shadow:5px 5px 0 var(--ink)}}
 }}
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
@@ -3280,6 +3282,7 @@ def monitor_form_html(m: dict[str, Any] | None = None, idx: int | None = None) -
     selectors = m.get("selectors") or {}
     no = m.get("notify_on") or {}
     keywords = "\n".join(m.get("keywords") or [])
+    exclude_keywords = "\n".join(m.get("exclude_keywords") or [])
     action = "/monitor/save" if idx is not None else "/monitor/create"
     hidden = f"<input type=hidden name=original_index value='{idx}'>" if idx is not None else ""
     def checked(k: str) -> str:
@@ -3291,6 +3294,8 @@ def monitor_form_html(m: dict[str, Any] | None = None, idx: int | None = None) -
 <div><label>间隔秒数（最低 1，默认 30）</label><input name=interval_seconds type=number min=1 value='{html_escape(m.get('interval_seconds', DEFAULT_MONITOR_INTERVAL_SECONDS))}'></div></div>
 <label>标题/正文关键词（一行一个，支持 /正则/）</label><textarea name=keywords placeholder='普通词写 VPS；正则写 /VPS|优惠|限免/'>{html_escape(keywords)}</textarea>
 <small class=field-hint>只匹配标题和正文；作者、发布时间、分类不参与。普通词按大小写不敏感的包含匹配；/…/ 按正则匹配，例如 /VPS|优惠/、/^限免/。</small>
+<label>排除词（一行一个，支持 /正则/）</label><textarea name=exclude_keywords placeholder='普通词写 求带；正则写 /(求带|带带)/' style='min-height:72px'>{html_escape(exclude_keywords)}</textarea>
+<small class=field-hint>命中排除词时直接跳过这条内容，不推送。规则写法与关键词一致。</small>
 <h3>Web 选择器（RSS 可忽略）</h3><div class=grid>
 <div><label>条目选择器</label><input name=item_selector value='{html_escape(selectors.get('item','article, .thread, .post, li'))}'></div>
 <div><label>标题选择器</label><input name=title_selector value='{html_escape(selectors.get('title','h1, h2, h3, a'))}'></div>
@@ -3694,7 +3699,7 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
             name, url = parts[0], parts[1]
             keywords = parts[2] if len(parts) >= 3 else ""
             try:
-                monitors.append(monitor_from_form(None, name, mtype, url, interval_seconds, keywords.replace(',', '\n'), "article, .thread, .post, li", "h1, h2, h3, a", "a", "", "", bool(keyword_match), bool(new_item), bool(price_change), bool(stock_change), bool(notify_telegram)))
+                monitors.append(monitor_from_form(None, name, mtype, url, interval_seconds, keywords.replace(',', '\n'), "", "article, .thread, .post, li", "h1, h2, h3, a", "a", "", "", bool(keyword_match), bool(new_item), bool(price_change), bool(stock_change), bool(notify_telegram)))
                 added += 1
             except Exception as e:
                 errors.append(f"第 {line_no} 行失败：{html_escape(e)}")
@@ -3721,6 +3726,7 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
         url: str,
         interval_seconds: int,
         keywords: str,
+        exclude_keywords: str,
         item_selector: str,
         title_selector: str,
         link_selector: str,
@@ -3734,7 +3740,7 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
     ) -> RedirectResponse:
         cfg = cfg_load_fresh()
         monitors = cfg.setdefault("monitors", [])
-        m = monitor_from_form(original_index, name, mtype, url, interval_seconds, keywords, item_selector, title_selector, link_selector, price_selector, stock_selector, bool(keyword_match), bool(new_item), bool(price_change), bool(stock_change), bool(notify_telegram))
+        m = monitor_from_form(original_index, name, mtype, url, interval_seconds, keywords, exclude_keywords, item_selector, title_selector, link_selector, price_selector, stock_selector, bool(keyword_match), bool(new_item), bool(price_change), bool(stock_change), bool(notify_telegram))
         if original_index is None:
             monitors.append(m)
         else:
@@ -3747,12 +3753,12 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
         return RedirectResponse("/", status_code=303)
 
     @app.post("/monitor/create")
-    async def create_monitor(_: str = Depends(panel_auth), name: str = Form(...), mtype: str = Form(...), url: str = Form(...), interval_seconds: int = Form(DEFAULT_MONITOR_INTERVAL_SECONDS), keywords: str = Form(""), item_selector: str = Form(""), title_selector: str = Form(""), link_selector: str = Form(""), price_selector: str = Form(""), stock_selector: str = Form(""), keyword_match: str | None = Form(None), new_item: str | None = Form(None), price_change: str | None = Form(None), stock_change: str | None = Form(None), notify_telegram: str | None = Form(None)) -> RedirectResponse:
-        return await save_form_common(None, name, mtype, url, interval_seconds, keywords, item_selector, title_selector, link_selector, price_selector, stock_selector, keyword_match, new_item, price_change, stock_change, notify_telegram)
+    async def create_monitor(_: str = Depends(panel_auth), name: str = Form(...), mtype: str = Form(...), url: str = Form(...), interval_seconds: int = Form(DEFAULT_MONITOR_INTERVAL_SECONDS), keywords: str = Form(""), exclude_keywords: str = Form(""), item_selector: str = Form(""), title_selector: str = Form(""), link_selector: str = Form(""), price_selector: str = Form(""), stock_selector: str = Form(""), keyword_match: str | None = Form(None), new_item: str | None = Form(None), price_change: str | None = Form(None), stock_change: str | None = Form(None), notify_telegram: str | None = Form(None)) -> RedirectResponse:
+        return await save_form_common(None, name, mtype, url, interval_seconds, keywords, exclude_keywords, item_selector, title_selector, link_selector, price_selector, stock_selector, keyword_match, new_item, price_change, stock_change, notify_telegram)
 
     @app.post("/monitor/save")
-    async def save_monitor(_: str = Depends(panel_auth), original_index: int = Form(...), name: str = Form(...), mtype: str = Form(...), url: str = Form(...), interval_seconds: int = Form(DEFAULT_MONITOR_INTERVAL_SECONDS), keywords: str = Form(""), item_selector: str = Form(""), title_selector: str = Form(""), link_selector: str = Form(""), price_selector: str = Form(""), stock_selector: str = Form(""), keyword_match: str | None = Form(None), new_item: str | None = Form(None), price_change: str | None = Form(None), stock_change: str | None = Form(None), notify_telegram: str | None = Form(None)) -> RedirectResponse:
-        return await save_form_common(original_index, name, mtype, url, interval_seconds, keywords, item_selector, title_selector, link_selector, price_selector, stock_selector, keyword_match, new_item, price_change, stock_change, notify_telegram)
+    async def save_monitor(_: str = Depends(panel_auth), original_index: int = Form(...), name: str = Form(...), mtype: str = Form(...), url: str = Form(...), interval_seconds: int = Form(DEFAULT_MONITOR_INTERVAL_SECONDS), keywords: str = Form(""), exclude_keywords: str = Form(""), item_selector: str = Form(""), title_selector: str = Form(""), link_selector: str = Form(""), price_selector: str = Form(""), stock_selector: str = Form(""), keyword_match: str | None = Form(None), new_item: str | None = Form(None), price_change: str | None = Form(None), stock_change: str | None = Form(None), notify_telegram: str | None = Form(None)) -> RedirectResponse:
+        return await save_form_common(original_index, name, mtype, url, interval_seconds, keywords, exclude_keywords, item_selector, title_selector, link_selector, price_selector, stock_selector, keyword_match, new_item, price_change, stock_change, notify_telegram)
 
     @app.get("/monitor/{idx}/delete")
     async def delete_monitor(idx: int, _: str = Depends(panel_auth)) -> RedirectResponse:
