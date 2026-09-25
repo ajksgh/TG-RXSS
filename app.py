@@ -329,7 +329,7 @@ def html_escape(text: Any) -> str:
 
 def app_icon_data_uri() -> str:
     svg = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236C7BFF'/><stop offset='1' stop-color='%233B5BDB'/></linearGradient></defs><rect x='2' y='2' width='60' height='60' rx='16' fill='url(%23g)'/><rect x='18' y='20' width='28' height='24' rx='6' fill='rgba(255,255,255,.35)'/><circle cx='26' cy='32' r='4' fill='%23ffffff'/><rect x='34' y='29' width='8' height='3' rx='1.5' fill='rgba(255,255,255,.85)'/><rect x='34' y='35' width='6' height='3' rx='1.5' fill='rgba(255,255,255,.6)'/></svg>"""
-    return "data:image/svg+xml," + svg
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
 
 
 def user_display(message: Message) -> tuple[int, str, str | None]:
