@@ -328,7 +328,7 @@ def html_escape(text: Any) -> str:
 
 
 def app_icon_data_uri() -> str:
-    svg = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23f0f0f0'/><circle cx='22' cy='22' r='13' fill='%23d02020' stroke='%23121212' stroke-width='4'/><rect x='30' y='12' width='22' height='22' fill='%231040c0' stroke='%23121212' stroke-width='4'/><path d='M12 52 L30 30 L48 52 Z' fill='%23f0c020' stroke='%23121212' stroke-width='4'/></svg>"""
+    svg = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236C7BFF'/><stop offset='1' stop-color='%233B5BDB'/></linearGradient></defs><rect x='2' y='2' width='60' height='60' rx='16' fill='url(%23g)'/><rect x='18' y='20' width='28' height='24' rx='6' fill='rgba(255,255,255,.35)'/><circle cx='26' cy='32' r='4' fill='%23ffffff'/><rect x='34' y='29' width='8' height='3' rx='1.5' fill='rgba(255,255,255,.85)'/><rect x='34' y='35' width='6' height='3' rx='1.5' fill='rgba(255,255,255,.6)'/></svg>"""
     return "data:image/svg+xml," + svg
 
 
@@ -2476,10 +2476,24 @@ def should_notify_and_update(monitor: dict[str, Any], item: MonitorItem, hits: l
     notify_on = monitor.get("notify_on") or {}
     reasons: list[str] = []
     with closing(db()) as conn:
+        has_state = conn.execute(
+            "SELECT 1 FROM monitor_state WHERE monitor_name=? LIMIT 1", (name,)
+        ).fetchone()
         prev = conn.execute(
             "SELECT * FROM monitor_state WHERE monitor_name=? AND item_key=?",
             (name, item.key),
         ).fetchone()
+        if has_state is None:
+            # 新监控首跑：整页现有条目都是旧闻，只建立基线状态，不推送。
+            conn.execute(
+                """
+                INSERT INTO monitor_state(monitor_name, item_key, price, stock, title, link, updated_at)
+                VALUES(?,?,?,?,?,?,?)
+                """,
+                (name, item.key, item.price, item.stock, item.title, item.link, now_iso()),
+            )
+            conn.commit()
+            return []
         is_forum = bool(monitor.get("forum") or monitor.get("type") == "rss")
         if is_forum:
             # 论坛/RSS 帖子只在首次出现并命中时通知一次。
@@ -2848,18 +2862,19 @@ def theme_interaction_script() -> str:
 
 def login_page(error: str = "") -> str:
     err = f"<div class='login-error'>{html_escape(error)}</div>" if error else ""
+    panel_title = os.getenv("PANEL_TITLE", "tg-watchbot")
     return f"""<!doctype html><html lang=zh-CN><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
-<title>登录 · tg-watchbot</title>
+<title>登录 · {panel_title}</title>
 <link rel=icon href="{app_icon_data_uri()}">
 {theme_boot_script()}
 <style>
 :root{{color-scheme:light;--canvas:#f4f6fb;--ink:#14161c;--muted:#5c6370;--red:#d02020;--blue:#3b5bdb;--yellow:#e8b420;--white:rgba(255,255,255,.72);--line:rgba(20,22,28,.10);--ease:cubic-bezier(.2,.8,.2,1)}}
 html[data-theme="dark"]{{color-scheme:dark;--canvas:#0b0d13;--ink:#EDEDEF;--muted:#8A8F98;--red:#ff6363;--blue:#5E6AD2;--yellow:#d7c56b;--white:rgba(255,255,255,.055);--line:rgba(255,255,255,.09)}}
 *{{box-sizing:border-box}}
-body{{margin:0;min-height:100vh;font-family:Outfit,Aptos,"Segoe UI",sans-serif;background:var(--canvas);color:var(--ink);display:grid;place-items:center;padding:24px;overflow:hidden}}
-body:before{{content:"";position:fixed;right:-140px;top:-120px;width:420px;height:420px;border-radius:50%;background:rgba(59,91,219,.14);filter:blur(80px);z-index:-1;animation:floatA 8s var(--ease) infinite alternate}}
-body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:420px;height:420px;border-radius:50%;background:rgba(212,110,60,.10);filter:blur(90px);z-index:-1;animation:floatB 10s var(--ease) infinite alternate}}
-.login-card{{position:relative;width:min(420px,100%);padding:32px 28px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.78);box-shadow:0 18px 50px rgba(20,22,28,.10);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:cardIn .28s var(--ease)}}
+body{{margin:0;min-height:100vh;font-family:Outfit,Aptos,"Segoe UI",sans-serif;background:radial-gradient(1000px 600px at 82% -10%,rgba(108,123,255,.22),transparent 60%),radial-gradient(800px 500px at -10% 88%,rgba(64,201,199,.16),transparent 55%),radial-gradient(620px 420px at 50% 118%,rgba(59,91,219,.14),transparent 50%),var(--canvas);color:var(--ink);display:grid;place-items:center;padding:24px;overflow:hidden}}
+body:before{{content:"";position:fixed;right:-140px;top:-120px;width:440px;height:440px;border-radius:50%;background:rgba(59,91,219,.18);filter:blur(90px);z-index:-1;animation:floatA 8s var(--ease) infinite alternate}}
+body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:440px;height:440px;border-radius:50%;background:rgba(64,201,199,.14);filter:blur(95px);z-index:-1;animation:floatB 10s var(--ease) infinite alternate}}
+.login-card{{position:relative;width:min(420px,100%);padding:32px 28px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.62);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 18px 50px rgba(20,22,28,.10);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);animation:cardIn .28s var(--ease)}}
 .login-card:after{{display:none}}
 .logo{{width:52px;height:52px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;margin-bottom:20px;transition:transform .22s var(--ease)}}
 .logo:before{{content:"";width:18px;height:18px;border-radius:50%;background:var(--blue)}}
@@ -2876,10 +2891,10 @@ button:active{{transform:translateY(1px)}}
 .theme-toggle{{position:fixed;right:20px;top:20px;width:36px;height:36px;margin:0;padding:0;border-radius:8px;background:rgba(255,255,255,.7);color:var(--ink);border:1px solid var(--line);z-index:2;box-shadow:none}}
 .login-error{{background:rgba(208,32,32,.08);border:1px solid rgba(208,32,32,.3);color:var(--red);padding:10px 12px;margin-bottom:16px;font-weight:600;border-radius:8px;box-shadow:none}}
 .foot{{margin-top:18px;color:var(--muted);font-size:12px;text-align:center;font-weight:500}}
-html[data-theme="dark"] body{{background:radial-gradient(ellipse at top,#151830 0%,#0b0d13 54%,#050508 100%)}}
+html[data-theme="dark"] body{{background:radial-gradient(1000px 600px at 82% -10%,rgba(108,123,255,.20),transparent 60%),radial-gradient(800px 500px at -10% 88%,rgba(64,201,199,.10),transparent 55%),radial-gradient(620px 420px at 50% 118%,rgba(59,91,219,.16),transparent 50%),#0b0d13}}
 html[data-theme="dark"] body:before{{background:rgba(94,106,210,.22);filter:blur(100px)}}
 html[data-theme="dark"] body:after{{background:rgba(104,114,217,.16);filter:blur(95px)}}
-html[data-theme="dark"] .login-card{{border:1px solid var(--line);background:rgba(18,20,30,.6);box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 90px rgba(94,106,210,.10);backdrop-filter:blur(18px)}}
+html[data-theme="dark"] .login-card{{border:1px solid var(--line);background:rgba(18,20,30,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 22px 70px rgba(0,0,0,.5),0 0 90px rgba(94,106,210,.10);backdrop-filter:blur(22px) saturate(1.2)}}
 html[data-theme="dark"] .logo{{background:rgba(94,106,210,.2)}}
 html[data-theme="dark"] input{{background:rgba(15,15,18,.7);border-color:var(--line)}}
 html[data-theme="dark"] input:focus{{box-shadow:0 0 0 3px rgba(94,106,210,.22);border-color:rgba(94,106,210,.55)}}
@@ -2892,7 +2907,7 @@ html[data-theme="dark"] .theme-toggle{{background:rgba(255,255,255,.06)}}
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
 }}
-</style></head><body><button class=theme-toggle type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><main class=login-card><div class=logo><i></i></div><h1>tg-watchbot</h1><p>登录后管理 Telegram 机器人、关键词监控和提醒。</p>{err}<form method=post action=/login><label>用户名</label><input name=username autocomplete=username autofocus><label>密码</label><input name=password type=password autocomplete=current-password><button type=submit>登录面板</button></form><div class=foot>localhost panel</div></main>{theme_interaction_script()}</body></html>"""
+</style></head><body><button class=theme-toggle type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><main class=login-card><div class=logo><i></i></div><h1>{panel_title}</h1><p>登录后管理 Telegram 机器人、关键词监控和提醒。</p>{err}<form method=post action=/login><label>用户名</label><input name=username autocomplete=username autofocus><label>密码</label><input name=password type=password autocomplete=current-password><button type=submit>登录面板</button></form><div class=foot>localhost panel</div></main>{theme_interaction_script()}</body></html>"""
 
 
 def env_values() -> dict[str, str]:
@@ -2908,6 +2923,7 @@ def env_values() -> dict[str, str]:
         "WEB_PANEL_PASSWORD": os.getenv("WEB_PANEL_PASSWORD", "admin"),
         "WEB_PANEL_SESSION_SECRET": os.getenv("WEB_PANEL_SESSION_SECRET", ""),
         "WEB_PANEL_COOKIE_SECURE": os.getenv("WEB_PANEL_COOKIE_SECURE", ""),
+        "PANEL_TITLE": os.getenv("PANEL_TITLE", "tg-watchbot"),
         "TG_API_ID": os.getenv("TG_API_ID", ""),
         "TG_API_HASH": os.getenv("TG_API_HASH", ""),
         "TG_API_SESSION": os.getenv("TG_API_SESSION", ""),
@@ -2940,6 +2956,7 @@ def write_env_values(values: dict[str, str]) -> None:
         f"WEB_PANEL_PASSWORD={values.get('WEB_PANEL_PASSWORD','admin')}",
         f"WEB_PANEL_SESSION_SECRET={session_value}",
         f"WEB_PANEL_COOKIE_SECURE={cookie_secure_value}",
+        f"PANEL_TITLE={values.get('PANEL_TITLE','tg-watchbot')}",
         f"TG_API_ID={values.get('TG_API_ID','')}",
         f"TG_API_HASH={values.get('TG_API_HASH','')}",
         f"TG_API_SESSION={values.get('TG_API_SESSION','')}",
@@ -3154,21 +3171,22 @@ def monitor_from_form(
 
 
 def layout(title: str, body: str) -> str:
+    panel_title = os.getenv("PANEL_TITLE", "tg-watchbot")
     return f"""<!doctype html><html lang=zh-CN><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
-<title>{html_escape(title)} · tg-watchbot</title>
+<title>{html_escape(title)} · {panel_title}</title>
 <link rel=icon href="{app_icon_data_uri()}">
 {theme_boot_script()}
 <style>
 :root{{color-scheme:light;--canvas:#f4f6fb;--ink:#14161c;--muted:#5c6370;--red:#d02020;--blue:#3b5bdb;--yellow:#e8b420;--white:rgba(255,255,255,.72);--line:rgba(20,22,28,.10);--ease:cubic-bezier(.2,.8,.2,1)}}
 html[data-theme="dark"]{{color-scheme:dark;--canvas:#0b0d13;--ink:#EDEDEF;--muted:#8A8F98;--red:#ff6363;--blue:#5E6AD2;--yellow:#d7c56b;--white:rgba(255,255,255,.055);--line:rgba(255,255,255,.09)}}
 *{{box-sizing:border-box}}
-body{{font-family:Outfit,Aptos,"Segoe UI",sans-serif;background:var(--canvas);color:var(--ink);margin:0;letter-spacing:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}}
-body:before{{content:"";position:fixed;right:-140px;top:-120px;width:420px;height:420px;border-radius:50%;background:rgba(59,91,219,.14);filter:blur(80px);z-index:-1;animation:floatA 9s var(--ease) infinite alternate}}
-body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:420px;height:420px;border-radius:50%;background:rgba(212,110,60,.10);filter:blur(90px);z-index:-1;animation:floatB 11s var(--ease) infinite alternate}}
+body{{font-family:Outfit,Aptos,"Segoe UI",sans-serif;background:radial-gradient(1000px 600px at 82% -10%,rgba(108,123,255,.22),transparent 60%),radial-gradient(800px 500px at -10% 88%,rgba(64,201,199,.16),transparent 55%),radial-gradient(620px 420px at 50% 118%,rgba(59,91,219,.14),transparent 50%),var(--canvas);color:var(--ink);margin:0;letter-spacing:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}}
+body:before{{content:"";position:fixed;right:-140px;top:-120px;width:440px;height:440px;border-radius:50%;background:rgba(59,91,219,.18);filter:blur(90px);z-index:-1;animation:floatA 9s var(--ease) infinite alternate}}
+body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:440px;height:440px;border-radius:50%;background:rgba(64,201,199,.14);filter:blur(95px);z-index:-1;animation:floatB 11s var(--ease) infinite alternate}}
 a{{color:var(--ink);text-decoration:none}}
 a:hover{{text-decoration:underline}}
 .shell{{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}}
-aside{{border-right:1px solid var(--line);background:rgba(255,255,255,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;overscroll-behavior:contain}}
+aside{{border-right:1px solid var(--line);background:rgba(255,255,255,.5);backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;overscroll-behavior:contain;box-shadow:inset -1px 0 0 rgba(255,255,255,.35)}}
 main{{padding:24px 30px;min-width:0;max-width:1440px;animation:mainIn .25s var(--ease)}}
 .brand{{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 4px 16px;border-bottom:1px solid var(--line)}}
 .mark{{width:44px;height:44px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;flex:0 0 auto;transition:transform .2s var(--ease)}}
@@ -3178,7 +3196,7 @@ main{{padding:24px 30px;min-width:0;max-width:1440px;animation:mainIn .25s var(-
 .brand b{{font-size:16px;color:var(--ink);font-weight:800}}
 .brand small{{display:block;color:var(--muted);margin-top:2px;font-weight:600}}
 nav{{display:grid;gap:14px}}
-nav section{{display:grid;gap:4px;padding:10px;border-radius:12px;background:rgba(255,255,255,.45);box-shadow:0 1px 2px rgba(20,22,28,.04)}}
+nav section{{display:grid;gap:4px;padding:10px;border-radius:12px;background:rgba(255,255,255,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(20,22,28,.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}
 nav section>b{{display:inline-block;width:max-content;margin:0 0 4px 2px;padding:2px 8px;border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}}
 nav a{{position:relative;padding:8px 10px;border-radius:8px;background:transparent;color:var(--ink);font-weight:600;text-transform:none;font-size:13px;transition:background-color .14s var(--ease)}}
 nav section:nth-child(2)>b{{background:rgba(212,64,64,.10);color:var(--red)}}
@@ -3198,7 +3216,7 @@ nav a:hover{{text-decoration:none;background:rgba(20,22,28,.05)}}
 .btn.danger{{background:var(--red);border-color:transparent;color:#fff}}
 .btn.ok{{background:rgba(232,180,32,.9);border-color:transparent;color:#3a2f00}}
 .actions{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
-.card{{position:relative;background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0;box-shadow:0 6px 24px rgba(20,22,28,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}}
+.card{{position:relative;background:rgba(255,255,255,.62);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 28px rgba(20,22,28,.06);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3)}}
 .card:after{{display:none}}
 .toolbar{{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}}
@@ -3216,14 +3234,14 @@ label{{display:block;margin:10px 0 5px;color:var(--ink);font-weight:600;font-siz
 .check-row input{{width:auto}}
 small,.muted{{color:var(--muted);line-height:1.5;font-weight:500}}
 .field-hint{{display:block;margin:-4px 0 14px;font-size:12px}}
-table{{width:100%;border-collapse:collapse;background:rgba(255,255,255,.6)}}
+table{{width:100%;border-collapse:collapse;background:rgba(255,255,255,.5)}}
 td,th{{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}}
 th{{color:var(--ink);font-size:12px;background:rgba(59,91,219,.06);text-transform:none;letter-spacing:0;font-weight:700}}
 tr:nth-child(even) td{{background:rgba(20,22,28,.025)}}
 .badge{{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:12px;font-weight:700;text-transform:none}}
 .badge.warn{{background:rgba(232,180,32,.16);color:#8a6d00;border-color:transparent}}
 .msg{{padding:11px 12px;border:1px solid rgba(232,180,32,.4);border-radius:8px;background:rgba(232,180,32,.12);color:var(--ink);margin:10px 0;font-weight:600;box-shadow:none}}
-.step{{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.55);padding:14px;margin:14px 0;box-shadow:0 4px 16px rgba(20,22,28,.04)}}
+.step{{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.5);padding:14px;margin:14px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 4px 16px rgba(20,22,28,.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}}
 .step-title{{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:16px;font-weight:800}}
 .step-no{{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(59,91,219,.12);color:var(--blue);font-weight:800}}
 pre{{white-space:pre-wrap;background:#14161c;color:#fff;padding:13px;border-radius:8px;max-height:420px;overflow:auto}}
@@ -3231,18 +3249,18 @@ pre{{white-space:pre-wrap;background:#14161c;color:#fff;padding:13px;border-radi
 .bot-links b{{font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}}
 .bot-links a{{font-weight:700;color:var(--blue)}}
 .bot-links a:hover{{text-decoration:underline}}
-html[data-theme="dark"] body{{background:radial-gradient(ellipse at top,#151830 0%,#0b0d13 52%,#050508 100%)}}
+html[data-theme="dark"] body{{background:radial-gradient(1000px 600px at 82% -10%,rgba(108,123,255,.20),transparent 60%),radial-gradient(800px 500px at -10% 88%,rgba(64,201,199,.10),transparent 55%),radial-gradient(620px 420px at 50% 118%,rgba(59,91,219,.16),transparent 50%),#0b0d13}}
 html[data-theme="dark"] body:before{{background:rgba(94,106,210,.20);filter:blur(100px)}}
 html[data-theme="dark"] body:after{{background:rgba(104,114,217,.14);filter:blur(110px)}}
-html[data-theme="dark"] aside{{background:rgba(18,20,30,.6);border-color:var(--line)}}
-html[data-theme="dark"] nav section{{background:rgba(255,255,255,.045);box-shadow:0 1px 2px rgba(0,0,0,.25)}}
+html[data-theme="dark"] aside{{background:rgba(18,20,30,.55);border-color:var(--line);box-shadow:inset -1px 0 0 rgba(255,255,255,.08)}}
+html[data-theme="dark"] nav section{{background:rgba(255,255,255,.04);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.25);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}
 html[data-theme="dark"] nav section>b{{background:rgba(94,106,210,.18);color:var(--blue)}}
 html[data-theme="dark"] nav section:nth-child(2)>b{{background:rgba(255,99,99,.14);color:var(--red)}}
 html[data-theme="dark"] nav section:nth-child(3)>b{{background:rgba(94,106,210,.18);color:var(--blue)}}
 html[data-theme="dark"] nav section:nth-child(4)>b{{background:rgba(215,197,107,.16);color:var(--yellow)}}
 html[data-theme="dark"] nav a:hover{{background:rgba(255,255,255,.06)}}
-html[data-theme="dark"] .card{{background:rgba(255,255,255,.055);border-color:var(--line);box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(16px)}}
-html[data-theme="dark"] .step{{background:rgba(255,255,255,.045);border-color:var(--line);box-shadow:0 4px 16px rgba(0,0,0,.3)}}
+html[data-theme="dark"] .card{{background:rgba(255,255,255,.06);border-color:var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(20px) saturate(1.2)}}
+html[data-theme="dark"] .step{{background:rgba(255,255,255,.04);border-color:var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.3);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}}
 html[data-theme="dark"] .btn,html[data-theme="dark"] .msg,html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea,html[data-theme="dark"] .badge,html[data-theme="dark"] .check-row label,html[data-theme="dark"] .mark,html[data-theme="dark"] .step-no,html[data-theme="dark"] table,html[data-theme="dark"] td,html[data-theme="dark"] th{{border-color:var(--line)}}
 html[data-theme="dark"] .btn{{background:rgba(255,255,255,.06)}}
 html[data-theme="dark"] .btn.primary{{background:var(--blue);box-shadow:0 6px 20px rgba(94,106,210,.3)}}
@@ -3273,7 +3291,7 @@ html[data-theme="dark"] .brand,html[data-theme="dark"] .top,html[data-theme="dar
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
 }}
-</style></head><body><div class=shell><aside><div class=brand><div class=mark><i></i></div><div><b>tg-watchbot</b><small>Telegram 自动化</small></div></div><nav><section><b>常用</b><a href='/'>总览</a><a href='/inbox'>收件箱</a><a href='/users'>用户</a><a href='/send'>发消息</a></section><section><b>转发</b><a href='/group-monitors'>群监听</a><a href='/monitor/events'>历史</a></section><section><b>设置</b><a href='/settings'>面板设置</a><a href='/yaml'>YAML</a><a href='/config/export'>导入导出</a></section><section><b>系统</b><a href='/update'>更新</a><a href='/logs'>日志</a><a href='/restart' onclick='return confirm("确定重启机器人服务？")'>重启</a><a class=logout href='/logout'>退出</a></section></nav></aside><main><div class=top><h1>{html_escape(title)}</h1><div class=top-actions><button class='btn theme-toggle' type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><span class=badge>WatchBot Panel</span></div></div>
+</style></head><body><div class=shell><aside><div class=brand><div class=mark><i></i></div><div><b>{panel_title}</b><small>Telegram 自动化</small></div></div><nav><section><b>常用</b><a href='/'>总览</a><a href='/inbox'>收件箱</a><a href='/users'>用户</a><a href='/send'>发消息</a></section><section><b>转发</b><a href='/group-monitors'>群监听</a><a href='/monitor/events'>历史</a></section><section><b>设置</b><a href='/settings'>面板设置</a><a href='/yaml'>YAML</a><a href='/config/export'>导入导出</a></section><section><b>系统</b><a href='/update'>更新</a><a href='/logs'>日志</a><a href='/restart' onclick='return confirm("确定重启机器人服务？")'>重启</a><a class=logout href='/logout'>退出</a></section></nav></aside><main><div class=top><h1>{html_escape(title)}</h1><div class=top-actions><button class='btn theme-toggle' type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><span class=badge>控制台</span></div></div>
 {body}<div class=bot-links><b>Telegram 机器人</b><a href='https://t.me/AGsykin_bot' target='_blank' rel='noopener noreferrer'>@AGsykin_bot</a></div></main></div>{theme_interaction_script()}</body></html>"""
 
 
@@ -3851,7 +3869,7 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
 </div>
 <div class=step><div class=step-title><span class=step-no>3</span><span>高级设置</span></div>
 <p class=muted>一般保持默认即可。</p>
-<div class=grid><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
+<div class=grid><div><label>站点名称</label><input name=PANEL_TITLE value='{html_escape(v['PANEL_TITLE'])}'></div><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
 <div class=msg>公网提示：监听地址填 <code>0.0.0.0</code> 会让面板监听所有网卡；Docker 是否暴露公网还取决于 <code>docker-compose.yml</code> 的端口映射和服务器防火墙。个人部署建议保持 <code>127.0.0.1</code>，用 SSH 隧道、反代或 Cloudflare Tunnel 访问。</div>
 <h3>自动清理</h3><div class=grid><div><label>清理间隔（分钟）</label><input name=CLEANUP_INTERVAL_MINUTES type=number min=1 value='{html_escape(cleanup.get("interval_minutes", 60))}'></div><div><label>通知删除时间（分钟）</label><input name=CLEANUP_MESSAGE_DELETE_AFTER_MINUTES type=number min=1 value='{html_escape(cleanup.get("monitor_message_delete_after_minutes", 60))}'></div><div><label>保留监控数据（分钟）</label><input name=CLEANUP_RETENTION_MINUTES type=number min=1 value='{html_escape(cleanup.get("monitor_retention_minutes", 1440))}'></div></div>
 </div>
@@ -3903,7 +3921,7 @@ async function logoutTgSession() {{
         cfg_save(cfg)
 
     @app.post("/settings", response_class=HTMLResponse)
-    async def settings_save(_: str = Depends(panel_auth), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin"), CLEANUP_INTERVAL_MINUTES: int = Form(60), CLEANUP_MESSAGE_DELETE_AFTER_MINUTES: int = Form(60), CLEANUP_RETENTION_MINUTES: int = Form(1440)) -> str:
+    async def settings_save(_: str = Depends(panel_auth), PANEL_TITLE: str = Form("tg-watchbot"), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin"), CLEANUP_INTERVAL_MINUTES: int = Form(60), CLEANUP_MESSAGE_DELETE_AFTER_MINUTES: int = Form(60), CLEANUP_RETENTION_MINUTES: int = Form(1440)) -> str:
         save_panel_settings(locals() | {"WEB_PANEL_ENABLED": WEB_PANEL_ENABLED}, CLEANUP_INTERVAL_MINUTES, CLEANUP_MESSAGE_DELETE_AFTER_MINUTES, CLEANUP_RETENTION_MINUTES)
         return layout("已保存", "<div class=msg>已保存，不会自动重启；修改 Token、管理员 ID、端口或监听地址后请重启。</div><p><a class=btn href='/settings'>返回</a> <a class=btn href='/restart'>重启机器人</a></p>")
 
@@ -4244,7 +4262,7 @@ async function logoutTgSession() {{
 
     @app.get("/restart", response_class=HTMLResponse)
     async def restart_page(_: str = Depends(panel_auth)) -> str:
-        body = """<div class=card><h2>重启机器人</h2><p class=muted>用于修改 Token、管理员 ID、面板设置等需要重启生效的配置。</p><form method=post action='/restart'><button class='btn danger' type=submit>确认重启 tg-watchbot</button></form></div>"""
+        body = """<div class=card><h2>重启机器人</h2><p class=muted>用于修改 Token、管理员 ID、面板设置等需要重启生效的配置。</p><form method=post action='/restart'><button class='btn danger' type=submit>确认重启服务</button></form></div>"""
         return layout("重启机器人", body)
 
     @app.get("/update", response_class=HTMLResponse)
