@@ -2863,9 +2863,10 @@ def theme_interaction_script() -> str:
 def login_page(error: str = "") -> str:
     err = f"<div class='login-error'>{html_escape(error)}</div>" if error else ""
     panel_title = os.getenv("PANEL_TITLE", "tg-watchbot")
+    panel_logo = os.getenv("PANEL_LOGO", "").strip() or app_icon_data_uri()
     return f"""<!doctype html><html lang=zh-CN><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
 <title>登录 · {panel_title}</title>
-<link rel=icon href="{app_icon_data_uri()}">
+<link rel=icon href="{panel_logo}">
 {theme_boot_script()}
 <style>
 :root{{color-scheme:light;--canvas:#f4f6fb;--ink:#14161c;--muted:#5c6370;--red:#d02020;--blue:#3b5bdb;--yellow:#e8b420;--white:rgba(255,255,255,.72);--line:rgba(20,22,28,.10);--ease:cubic-bezier(.2,.8,.2,1)}}
@@ -2877,7 +2878,8 @@ body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:440px;heig
 .login-card{{position:relative;width:min(420px,100%);padding:32px 28px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.62);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 18px 50px rgba(20,22,28,.10);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);animation:cardIn .28s var(--ease)}}
 .login-card:after{{display:none}}
 .logo{{width:52px;height:52px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;margin-bottom:20px;transition:transform .22s var(--ease)}}
-.logo:before{{content:"";width:18px;height:18px;border-radius:50%;background:var(--blue)}}
+.logo:before{{display:none}}
+.logo img{{width:34px;height:34px;border-radius:9px;object-fit:cover;display:block;box-shadow:0 4px 12px rgba(59,91,219,.18)}}
 .logo:after,.logo i{{display:none}}
 .login-card:hover .logo{{transform:translateY(-1px)}}
 h1{{margin:0 0 8px;font-size:24px;line-height:1.1;text-transform:none;color:var(--ink);letter-spacing:0;font-weight:800}}
@@ -2907,7 +2909,7 @@ html[data-theme="dark"] .theme-toggle{{background:rgba(255,255,255,.06)}}
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
 }}
-</style></head><body><button class=theme-toggle type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><main class=login-card><div class=logo><i></i></div><h1>{panel_title}</h1><p>登录后管理 Telegram 机器人、关键词监控和提醒。</p>{err}<form method=post action=/login><label>用户名</label><input name=username autocomplete=username autofocus><label>密码</label><input name=password type=password autocomplete=current-password><button type=submit>登录面板</button></form><div class=foot>localhost panel</div></main>{theme_interaction_script()}</body></html>"""
+</style></head><body><button class=theme-toggle type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><main class=login-card><div class=logo><img src='{panel_logo}' alt=''></div><h1>{panel_title}</h1><p>登录后管理 Telegram 机器人、关键词监控和提醒。</p>{err}<form method=post action=/login><label>用户名</label><input name=username autocomplete=username autofocus><label>密码</label><input name=password type=password autocomplete=current-password><button type=submit>登录面板</button></form><div class=foot>localhost panel</div></main>{theme_interaction_script()}</body></html>"""
 
 
 def env_values() -> dict[str, str]:
@@ -2924,6 +2926,7 @@ def env_values() -> dict[str, str]:
         "WEB_PANEL_SESSION_SECRET": os.getenv("WEB_PANEL_SESSION_SECRET", ""),
         "WEB_PANEL_COOKIE_SECURE": os.getenv("WEB_PANEL_COOKIE_SECURE", ""),
         "PANEL_TITLE": os.getenv("PANEL_TITLE", "tg-watchbot"),
+        "PANEL_LOGO": os.getenv("PANEL_LOGO", ""),
         "TG_API_ID": os.getenv("TG_API_ID", ""),
         "TG_API_HASH": os.getenv("TG_API_HASH", ""),
         "TG_API_SESSION": os.getenv("TG_API_SESSION", ""),
@@ -2957,6 +2960,7 @@ def write_env_values(values: dict[str, str]) -> None:
         f"WEB_PANEL_SESSION_SECRET={session_value}",
         f"WEB_PANEL_COOKIE_SECURE={cookie_secure_value}",
         f"PANEL_TITLE={values.get('PANEL_TITLE','tg-watchbot')}",
+        f"PANEL_LOGO={values.get('PANEL_LOGO','')}",
         f"TG_API_ID={values.get('TG_API_ID','')}",
         f"TG_API_HASH={values.get('TG_API_HASH','')}",
         f"TG_API_SESSION={values.get('TG_API_SESSION','')}",
@@ -3172,9 +3176,10 @@ def monitor_from_form(
 
 def layout(title: str, body: str) -> str:
     panel_title = os.getenv("PANEL_TITLE", "tg-watchbot")
+    panel_logo = os.getenv("PANEL_LOGO", "").strip() or app_icon_data_uri()
     return f"""<!doctype html><html lang=zh-CN><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
 <title>{html_escape(title)} · {panel_title}</title>
-<link rel=icon href="{app_icon_data_uri()}">
+<link rel=icon href="{panel_logo}">
 {theme_boot_script()}
 <style>
 :root{{color-scheme:light;--canvas:#f4f6fb;--ink:#14161c;--muted:#5c6370;--red:#d02020;--blue:#3b5bdb;--yellow:#e8b420;--white:rgba(255,255,255,.72);--line:rgba(20,22,28,.10);--ease:cubic-bezier(.2,.8,.2,1)}}
@@ -3190,7 +3195,8 @@ aside{{border-right:1px solid var(--line);background:rgba(255,255,255,.5);backdr
 main{{padding:24px 30px;min-width:0;max-width:1440px;animation:mainIn .25s var(--ease)}}
 .brand{{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 4px 16px;border-bottom:1px solid var(--line)}}
 .mark{{width:44px;height:44px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;flex:0 0 auto;transition:transform .2s var(--ease)}}
-.mark:before{{content:"";width:16px;height:16px;border-radius:50%;background:var(--blue)}}
+.mark:before{{display:none}}
+.mark img{{width:28px;height:28px;border-radius:8px;object-fit:cover;box-shadow:0 4px 12px rgba(59,91,219,.18)}}
 .mark i{{display:none}}
 .brand:hover .mark{{transform:translateY(-1px)}}
 .brand b{{font-size:16px;color:var(--ink);font-weight:800}}
@@ -3291,7 +3297,7 @@ html[data-theme="dark"] .brand,html[data-theme="dark"] .top,html[data-theme="dar
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
 }}
-</style></head><body><div class=shell><aside><div class=brand><div class=mark><i></i></div><div><b>{panel_title}</b><small>Telegram 自动化</small></div></div><nav><section><b>常用</b><a href='/'>总览</a><a href='/inbox'>收件箱</a><a href='/users'>用户</a><a href='/send'>发消息</a></section><section><b>转发</b><a href='/group-monitors'>群监听</a><a href='/monitor/events'>历史</a></section><section><b>设置</b><a href='/settings'>面板设置</a><a href='/yaml'>YAML</a><a href='/config/export'>导入导出</a></section><section><b>系统</b><a href='/update'>更新</a><a href='/logs'>日志</a><a href='/restart' onclick='return confirm("确定重启机器人服务？")'>重启</a><a class=logout href='/logout'>退出</a></section></nav></aside><main><div class=top><h1>{html_escape(title)}</h1><div class=top-actions><button class='btn theme-toggle' type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><span class=badge>控制台</span></div></div>
+</style></head><body><div class=shell><aside><div class=brand><div class=mark><img src='{panel_logo}' alt=''></div><div><b>{panel_title}</b><small>Telegram 自动化</small></div></div><nav><section><b>常用</b><a href='/'>总览</a><a href='/inbox'>收件箱</a><a href='/users'>用户</a><a href='/send'>发消息</a></section><section><b>转发</b><a href='/group-monitors'>群监听</a><a href='/monitor/events'>历史</a></section><section><b>设置</b><a href='/settings'>面板设置</a><a href='/yaml'>YAML</a><a href='/config/export'>导入导出</a></section><section><b>系统</b><a href='/update'>更新</a><a href='/logs'>日志</a><a href='/restart' onclick='return confirm("确定重启机器人服务？")'>重启</a><a class=logout href='/logout'>退出</a></section></nav></aside><main><div class=top><h1>{html_escape(title)}</h1><div class=top-actions><button class='btn theme-toggle' type=button data-theme-toggle onclick='toggleTheme()' aria-label='切换暗黑主题' title='切换暗黑主题'>暗</button><span class=badge>控制台</span></div></div>
 {body}<div class=bot-links><b>Telegram 机器人</b><a href='https://t.me/AGsykin_bot' target='_blank' rel='noopener noreferrer'>@AGsykin_bot</a></div></main></div>{theme_interaction_script()}</body></html>"""
 
 
@@ -3869,7 +3875,7 @@ HostLoc|https://hostloc.com|VPS,补货,优惠"""
 </div>
 <div class=step><div class=step-title><span class=step-no>3</span><span>高级设置</span></div>
 <p class=muted>一般保持默认即可。</p>
-<div class=grid><div><label>站点名称</label><input name=PANEL_TITLE value='{html_escape(v['PANEL_TITLE'])}'></div><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
+<div class=grid><div><label>站点名称</label><input name=PANEL_TITLE value='{html_escape(v['PANEL_TITLE'])}'></div><div><label>网站 Logo</label><input name=PANEL_LOGO value='{html_escape(v['PANEL_LOGO'])}' placeholder='留空使用默认图标，可填图片 URL'></div><div><label>日志级别</label><input name=LOG_LEVEL value='{html_escape(v['LOG_LEVEL'])}'></div><div><label>面板监听地址</label><input name=WEB_PANEL_HOST value='{html_escape(v['WEB_PANEL_HOST'])}'></div><div><label>面板端口</label><input name=WEB_PANEL_PORT value='{html_escape(v['WEB_PANEL_PORT'])}'></div><div><label>面板用户</label><input name=WEB_PANEL_USER value='{html_escape(v['WEB_PANEL_USER'])}'></div><div><label>面板密码</label><input name=WEB_PANEL_PASSWORD value='{html_escape(v['WEB_PANEL_PASSWORD'])}'></div></div>
 <div class=msg>公网提示：监听地址填 <code>0.0.0.0</code> 会让面板监听所有网卡；Docker 是否暴露公网还取决于 <code>docker-compose.yml</code> 的端口映射和服务器防火墙。个人部署建议保持 <code>127.0.0.1</code>，用 SSH 隧道、反代或 Cloudflare Tunnel 访问。</div>
 <h3>自动清理</h3><div class=grid><div><label>清理间隔（分钟）</label><input name=CLEANUP_INTERVAL_MINUTES type=number min=1 value='{html_escape(cleanup.get("interval_minutes", 60))}'></div><div><label>通知删除时间（分钟）</label><input name=CLEANUP_MESSAGE_DELETE_AFTER_MINUTES type=number min=1 value='{html_escape(cleanup.get("monitor_message_delete_after_minutes", 60))}'></div><div><label>保留监控数据（分钟）</label><input name=CLEANUP_RETENTION_MINUTES type=number min=1 value='{html_escape(cleanup.get("monitor_retention_minutes", 1440))}'></div></div>
 </div>
@@ -3921,7 +3927,7 @@ async function logoutTgSession() {{
         cfg_save(cfg)
 
     @app.post("/settings", response_class=HTMLResponse)
-    async def settings_save(_: str = Depends(panel_auth), PANEL_TITLE: str = Form("tg-watchbot"), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin"), CLEANUP_INTERVAL_MINUTES: int = Form(60), CLEANUP_MESSAGE_DELETE_AFTER_MINUTES: int = Form(60), CLEANUP_RETENTION_MINUTES: int = Form(1440)) -> str:
+    async def settings_save(_: str = Depends(panel_auth), PANEL_TITLE: str = Form("tg-watchbot"), PANEL_LOGO: str = Form(""), TELEGRAM_BOT_TOKEN: str = Form(""), ADMIN_CHAT_ID: str = Form(""), TG_API_ID: str = Form(""), TG_API_HASH: str = Form(""), TG_API_SESSION: str = Form(""), TG_PROXY: str = Form(""), LOG_LEVEL: str = Form("INFO"), WEB_PANEL_ENABLED: str = Form("true"), WEB_PANEL_HOST: str = Form("127.0.0.1"), WEB_PANEL_PORT: str = Form("8765"), WEB_PANEL_USER: str = Form("admin"), WEB_PANEL_PASSWORD: str = Form("admin"), CLEANUP_INTERVAL_MINUTES: int = Form(60), CLEANUP_MESSAGE_DELETE_AFTER_MINUTES: int = Form(60), CLEANUP_RETENTION_MINUTES: int = Form(1440)) -> str:
         save_panel_settings(locals() | {"WEB_PANEL_ENABLED": WEB_PANEL_ENABLED}, CLEANUP_INTERVAL_MINUTES, CLEANUP_MESSAGE_DELETE_AFTER_MINUTES, CLEANUP_RETENTION_MINUTES)
         return layout("已保存", "<div class=msg>已保存，不会自动重启；修改 Token、管理员 ID、端口或监听地址后请重启。</div><p><a class=btn href='/settings'>返回</a> <a class=btn href='/restart'>重启机器人</a></p>")
 
