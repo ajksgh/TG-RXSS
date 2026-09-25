@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote_plus, urljoin, urlparse
 import os.path as ospath
 
 import feedparser
@@ -44,7 +44,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command, CommandObject
-from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import BotCommand, BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from aiogram.client.default import DefaultBotProperties
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
@@ -88,6 +88,8 @@ admin_chat_ids: list[int] = []
 config: dict[str, Any] = {}
 rate_buckets: dict[int, list[float]] = {}
 pending_sendpic: dict[int, dict[str, Any]] = {}
+pending_quickadd: dict[int, dict[str, Any]] = {}
+pending_spam_action: dict[int, dict[str, Any]] = {}
 scheduler_ref: AsyncIOScheduler | None = None
 user_session_listener_task: asyncio.Task | None = None
 user_session_client: Any = None
@@ -1694,6 +1696,322 @@ def update_spam_keywords(action: str, word: str) -> list[str]:
     return words
 
 
+def infer_monitor_type(url: str) -> str:
+    path = urlparse(url).path.lower()
+    if path.endswith((".rss", ".xml")) or "/feed" in path or "/rss" in path:
+        return "rss"
+    return "web"
+
+
+def panel_base_url() -> str:
+    load_dotenv(ENV_PATH, override=True)
+    host = os.getenv("WEB_PANEL_HOST", "127.0.0.1")
+    port = os.getenv("WEB_PANEL_PORT", "8765")
+    return f"http://{host}:{port}".rstrip("/")
+
+
+def tg_back_row() -> list[InlineKeyboardButton]:
+    return [InlineKeyboardButton(text="返回菜单", callback_data="tgmenu:main")]
+
+
+def tg_main_menu() -> tuple[str, InlineKeyboardMarkup]:
+    text = "tg-watchbot 管理菜单\n请选择要管理的功能。"
+    rows = [
+        [InlineKeyboardButton(text="Web/RSS 监控", callback_data="tgmenu:mon")],
+        [InlineKeyboardButton(text="群监听", callback_data="tgmenu:group")],
+        [InlineKeyboardButton(text="广告拦截", callback_data="tgmenu:spam")],
+        [InlineKeyboardButton(text="用户管理", callback_data="tgmenu:users")],
+        [InlineKeyboardButton(text="帮助", callback_data="tgmenu:help")],
+    ]
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def tg_monitor_menu() -> tuple[str, InlineKeyboardMarkup]:
+    cfg = cfg_load_fresh()
+    monitors = cfg.get("monitors") or []
+    rows = [
+        [InlineKeyboardButton(text="新增监控", callback_data="tgmenu:mon:add")],
+        tg_back_row(),
+    ]
+    if not monitors:
+        return "当前没有 Web/RSS 监控。", InlineKeyboardMarkup(inline_keyboard=rows)
+    lines = [f"Web/RSS 监控，共 {len(monitors)} 个："]
+    action_rows: list[list[InlineKeyboardButton]] = []
+    for idx, monitor in enumerate(monitors[:10]):
+        enabled = bool(monitor.get("enabled", True))
+        status = "启用" if enabled else "停用"
+        lines.append(
+            f"{idx + 1}. [{status}] {html_escape(monitor.get('name') or '未命名')} | "
+            f"{html_escape(monitor.get('type') or 'web')} | "
+            f"{safe_int(monitor.get('interval_seconds'), DEFAULT_MONITOR_INTERVAL_SECONDS)}s"
+        )
+        action_rows.append(
+            [
+                InlineKeyboardButton(text=f"{idx + 1} 启停", callback_data=f"tgmenu:mon:{idx}:toggle"),
+                InlineKeyboardButton(text=f"{idx + 1} 运行", callback_data=f"tgmenu:mon:{idx}:run"),
+                InlineKeyboardButton(text=f"{idx + 1} 删除", callback_data=f"tgmenu:mon:{idx}:delete"),
+            ]
+        )
+    if len(monitors) > 10:
+        lines.append("Telegram 菜单仅显示前 10 个。")
+    rows = action_rows + rows
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def tg_group_menu() -> tuple[str, InlineKeyboardMarkup]:
+    cfg = cfg_load_fresh()
+    group_rows = cfg.get("group_monitors") or []
+    rows: list[list[InlineKeyboardButton]] = []
+    if not group_rows:
+        text = "当前没有群监听。"
+    else:
+        text = [f"群监听，共 {len(group_rows)} 个："]
+        for idx, row in enumerate(group_rows[:10]):
+            enabled = bool(row.get("enabled", True))
+            status = "启用" if enabled else "停用"
+            source = str(row.get("listen_source") or "bot")
+            text.append(
+                f"{idx + 1}. [{status}] {html_escape(row.get('name') or str(row.get('chat_id') or '未命名'))} | "
+                f"{html_escape(row.get('chat_id'))} | {html_escape(source)}"
+            )
+            rows.append(
+                [
+                    InlineKeyboardButton(text=f"{idx + 1} 启停", callback_data=f"tgmenu:group:{idx}:toggle"),
+                    InlineKeyboardButton(text=f"{idx + 1} 删除", callback_data=f"tgmenu:group:{idx}:delete"),
+                ]
+            )
+        if len(group_rows) > 10:
+            text.append("Telegram 菜单仅显示前 10 个。")
+        text = "\n".join(text)
+    rows.append([InlineKeyboardButton(text="在面板新增群监听", url=panel_base_url() + "/group-monitors/new")])
+    rows.append(tg_back_row())
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def tg_spam_menu() -> tuple[str, InlineKeyboardMarkup]:
+    cfg = cfg_load_fresh()
+    spam = ((cfg.get("bot") or {}).get("spam_filter") or {})
+    words = [str(word) for word in spam.get("keywords") or [] if str(word).strip()]
+    enabled = bool(spam.get("enabled", False))
+    auto_block = bool(spam.get("auto_block", True))
+    lines = [
+        f"广告拦截：{'已启用' if enabled else '已停用'}",
+        f"自动封禁：{'开启' if auto_block else '关闭'}",
+        f"关键词，共 {len(words)} 个：",
+    ]
+    lines += [f"{idx + 1}. {html_escape(word)}" for idx, word in enumerate(words[:10])]
+    if len(words) > 10:
+        lines.append("Telegram 菜单仅显示前 10 个。")
+    rows = [
+        [InlineKeyboardButton(text="启用/停用", callback_data="tgmenu:spam:toggle")],
+        [InlineKeyboardButton(text="添加关键词", callback_data="tgmenu:spam:add")],
+    ]
+    rows += [
+        [InlineKeyboardButton(text=f"删除 {idx + 1}", callback_data=f"tgmenu:spam:{idx}:delete")]
+        for idx in range(min(10, len(words)))
+    ]
+    rows.append(tg_back_row())
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def tg_users_menu() -> tuple[str, InlineKeyboardMarkup]:
+    with closing(db()) as conn:
+        rows = conn.execute(
+            "SELECT user_id, full_name, username, blocked, verified FROM users ORDER BY updated_at DESC LIMIT 10"
+        ).fetchall()
+    text = "最近用户，最多 10 个："
+    action_rows: list[list[InlineKeyboardButton]] = []
+    if not rows:
+        text += "\n暂无用户。"
+    for row in rows:
+        status = "封禁" if bool(row["blocked"]) else "正常"
+        text += (
+            f"\n{row['user_id']} | {status} | {html_escape(row['full_name'] or '')} "
+            f"@{html_escape(row['username'] or '')}"
+        )
+        if row["blocked"]:
+            action_rows.append([InlineKeyboardButton(text=f"解封 {row['user_id']}", callback_data=f"tgmenu:user:{row['user_id']}:unblock")])
+        else:
+            action_rows.append([InlineKeyboardButton(text=f"封禁 {row['user_id']}", callback_data=f"tgmenu:user:{row['user_id']}:block")])
+    action_rows.append(tg_back_row())
+    return text, InlineKeyboardMarkup(inline_keyboard=action_rows)
+
+
+def tg_help_menu() -> tuple[str, InlineKeyboardMarkup]:
+    text = (
+        "Telegram 快捷管理：\n"
+        "/menu 管理菜单\n"
+        "/panel Web 面板\n"
+        "/monitors 监控列表\n"
+        "/spamwords 广告关键词\n"
+        "支持监控新增、启停、运行、删除，群监听启停/删除，广告词启停/增删，用户封禁/解封。"
+    )
+    return text, InlineKeyboardMarkup(inline_keyboard=[tg_back_row()])
+
+
+@router.message(Command("menu"))
+async def cmd_tg_menu(message: Message) -> None:
+    if not is_admin_chat(message):
+        await message.reply("只有管理员可以使用 /menu。")
+        return
+    text, markup = tg_main_menu()
+    await message.reply(text, reply_markup=markup)
+
+
+@router.message(Command("panel"))
+async def cmd_panel(message: Message) -> None:
+    if not is_admin_chat(message):
+        return
+    url = panel_base_url()
+    await message.reply(
+        f"Web 面板：{html_escape(url)}\n如监听 127.0.0.1，请通过 SSH 隧道或反向代理访问。",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="打开面板", url=url)], tg_back_row()]),
+    )
+
+
+@router.message(Command("monitors"))
+async def cmd_monitors(message: Message) -> None:
+    if not is_admin_chat(message):
+        return
+    text, markup = tg_monitor_menu()
+    await message.reply(text, reply_markup=markup)
+
+
+@router.callback_query(F.data.startswith("tgmenu:"))
+async def cb_tgmenu(callback: CallbackQuery) -> None:
+    if callback.from_user.id not in all_admin_chat_ids():
+        await callback.answer("无权限", show_alert=True)
+        return
+    parts = str(callback.data or "").split(":")
+    section = parts[1] if len(parts) > 1 else ""
+    if not callback.message or not callback.message.chat:
+        await callback.answer("消息已过期，请重新发送 /menu。", show_alert=True)
+        return
+    chat_id = int(callback.message.chat.id)
+    await callback.answer()
+
+    if section == "main":
+        text, markup = tg_main_menu()
+        await callback.message.edit_text(text, reply_markup=markup)
+        return
+    if section == "mon":
+        if len(parts) < 3:
+            text, markup = tg_monitor_menu()
+            await callback.message.edit_text(text, reply_markup=markup)
+            return
+        if parts[2] == "add":
+            pending_spam_action.pop(chat_id, None)
+            pending_quickadd[chat_id] = {"step": "url", "created_at": time.time()}
+            await callback.message.edit_text("请发送监控 URL（http/https）；发送 /cancel 取消。")
+            return
+        idx = safe_int(parts[2], -1)
+        action = parts[3] if len(parts) > 3 else ""
+        cfg = cfg_load_fresh()
+        monitors = cfg.get("monitors") or []
+        if idx < 0 or idx >= len(monitors):
+            await callback.message.answer("监控不存在，请重新打开 /menu。")
+            return
+        if action == "toggle":
+            monitor = monitors[idx]
+            enabled = not bool(monitor.get("enabled", True))
+            monitor["enabled"] = enabled
+            cfg_save(cfg)
+            await callback.message.answer(f"监控“{html_escape(monitor.get('name') or '未命名')}”已{'启用' if enabled else '停用'}。")
+            return
+        if action == "run":
+            await callback.message.answer(f"正在手动运行监控“{html_escape(monitors[idx].get('name') or '未命名')}”...")
+            count = await run_monitor(monitors[idx])
+            await callback.message.answer(f"已手动检查，推送 {count} 条。")
+            return
+        if action == "delete":
+            monitor = monitors.pop(idx)
+            cfg_save(cfg)
+            await callback.message.answer(f"已删除监控“{html_escape(monitor.get('name') or '未命名')}”。")
+            return
+        text, markup = tg_monitor_menu()
+        await callback.message.edit_text(text, reply_markup=markup)
+        return
+    if section == "group":
+        cfg = cfg_load_fresh()
+        group_rows = cfg.setdefault("group_monitors", [])
+        if len(parts) < 4:
+            text, markup = tg_group_menu()
+            await callback.message.edit_text(text, reply_markup=markup)
+            return
+        idx = safe_int(parts[2], -1)
+        action = parts[3]
+        if idx < 0 or idx >= len(group_rows):
+            await callback.message.answer("群监听不存在，请重新打开 /menu。")
+            return
+        if action == "toggle":
+            enabled = not bool(group_rows[idx].get("enabled", True))
+            group_rows[idx]["enabled"] = enabled
+            cfg_save(cfg)
+            await callback.message.answer(f"群监听已{'启用' if enabled else '停用'}。")
+            return
+        if action == "delete":
+            row = group_rows.pop(idx)
+            cfg_save(cfg)
+            await callback.message.answer(f"已删除群监听“{html_escape(row.get('name') or row.get('chat_id'))}”。")
+            return
+        text, markup = tg_group_menu()
+        await callback.message.edit_text(text, reply_markup=markup)
+        return
+    if section == "spam":
+        if len(parts) > 2 and parts[2] == "toggle":
+            cfg = cfg_load_fresh()
+            spam = cfg.setdefault("bot", {}).setdefault("spam_filter", {})
+            enabled = not bool(spam.get("enabled", False))
+            spam["enabled"] = enabled
+            spam.setdefault("auto_block", True)
+            cfg_save(cfg)
+            await callback.message.answer(f"广告拦截已{'启用' if enabled else '停用'}。")
+            return
+        if len(parts) > 2 and parts[2] == "add":
+            pending_quickadd.pop(chat_id, None)
+            pending_spam_action[chat_id] = {"created_at": time.time()}
+            await callback.message.edit_text("请发送要添加的广告关键词；发送 /cancel 取消。")
+            return
+        if len(parts) > 3 and parts[3] == "delete":
+            words = spam_filter_settings()["keywords"]
+            idx = safe_int(parts[2], -1)
+            if 0 <= idx < len(words):
+                update_spam_keywords("delete", words[idx])
+                await callback.message.answer(f"已删除广告关键词：{html_escape(words[idx])}")
+            else:
+                await callback.message.answer("广告关键词不存在，请重新打开 /menu。")
+            return
+        text, markup = tg_spam_menu()
+        await callback.message.edit_text(text, reply_markup=markup)
+        return
+    if section == "users":
+        if len(parts) > 3:
+            target_id = safe_int(parts[2], 0)
+            action = parts[3]
+            if not get_user(target_id):
+                await callback.message.answer("用户不存在，请重新打开 /menu。")
+                return
+            set_block(target_id, action == "block")
+            await callback.message.answer(f"已{'封禁' if action == 'block' else '解封'}用户 {target_id}。")
+            return
+        text, markup = tg_users_menu()
+        await callback.message.edit_text(text, reply_markup=markup)
+        return
+    if section == "panel":
+        url = panel_base_url()
+        await callback.message.answer(
+            f"Web 面板：{html_escape(url)}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="打开面板", url=url)], tg_back_row()]),
+        )
+        return
+    if section == "help":
+        text, markup = tg_help_menu()
+        await callback.message.edit_text(text, reply_markup=markup)
+        return
+    text, markup = tg_main_menu()
+    await callback.message.edit_text(text, reply_markup=markup)
+
+
 def record_monitor_event(monitor_name: str, title: str, link: str, reasons: list[str], pushed: bool) -> None:
     with closing(db()) as conn:
         conn.execute(
@@ -1921,6 +2239,8 @@ def is_admin_action_message(message: Message) -> bool:
         return False
     if pending_sendpic.get(message.chat.id):
         return True
+    if pending_quickadd.get(message.chat.id) or pending_spam_action.get(message.chat.id):
+        return True
     return bool(message.reply_to_message and message.text)
 
 
@@ -1999,6 +2319,10 @@ async def cmd_sendpic(message: Message, command: CommandObject) -> None:
 async def cmd_cancel(message: Message) -> None:
     if is_admin_chat(message) and pending_sendpic.pop(message.chat.id, None):
         await message.reply("已取消待发送图片。")
+    elif is_admin_chat(message) and pending_quickadd.pop(message.chat.id, None):
+        await message.reply("已取消新增监控。")
+    elif is_admin_chat(message) and pending_spam_action.pop(message.chat.id, None):
+        await message.reply("已取消添加广告关键词。")
 
 
 @router.message(Command("block"))
@@ -2202,6 +2526,88 @@ async def admin_reply_by_message(message: Message) -> None:
         if message.text and message.text.startswith("/"):
             return
         await message.reply("请发送一张图片；或发送 /cancel 取消。")
+        return
+
+    quickadd = pending_quickadd.get(message.chat.id)
+    if quickadd:
+        if time.time() - float(quickadd.get("created_at", 0)) > 300:
+            pending_quickadd.pop(message.chat.id, None)
+            await message.reply("新增监控已超时取消。请重新使用 /menu。")
+            return
+        if not message.text or message.text.startswith("/"):
+            await message.reply("请发送文本；发送 /cancel 取消新增监控。")
+            return
+        text_value = message.text.strip()
+        step = str(quickadd.get("step") or "url")
+        quickadd["created_at"] = time.time()
+        if step == "url":
+            if not text_value.lower().startswith(("http://", "https://")):
+                await message.reply("URL 需要以 http:// 或 https:// 开头，请重新发送。")
+                return
+            quickadd["url"] = text_value
+            quickadd["step"] = "keywords"
+            await message.reply("请发送监控关键词，每行一个；没有关键词请发送“无”。")
+            return
+        if step == "keywords":
+            quickadd["keywords"] = "" if text_value == "无" else text_value
+            quickadd["step"] = "name"
+            await message.reply("请发送监控名称；发送“无”则自动使用 URL 域名。")
+            return
+        if step == "name":
+            pending_quickadd.pop(message.chat.id, None)
+            url_value = str(quickadd.get("url") or "")
+            monitor_type = infer_monitor_type(url_value)
+            default_name = urlparse(url_value).netloc or "new-monitor"
+            monitor_name = default_name if text_value == "无" else text_value
+            try:
+                monitor = monitor_from_form(
+                    None,
+                    monitor_name,
+                    monitor_type,
+                    url_value,
+                    DEFAULT_MONITOR_INTERVAL_SECONDS,
+                    str(quickadd.get("keywords") or ""),
+                    "",
+                    "article, .thread, .post, li",
+                    "h1, h2, h3, a",
+                    "a",
+                    "",
+                    "",
+                    True,
+                    True,
+                    False,
+                    False,
+                    True,
+                )
+                cfg = cfg_load_fresh()
+                cfg.setdefault("monitors", []).append(monitor)
+                cfg_save(cfg)
+            except Exception as exc:
+                logger.exception("telegram quick add monitor failed")
+                await message.reply(f"新增监控失败：{html_escape(exc)}")
+                return
+            await message.reply(
+                f"已新增监控：{html_escape(monitor_name)}（{monitor_type.upper()}）\n"
+                f"已启用，间隔 {monitor['interval_seconds']} 秒。"
+            )
+            return
+
+    spam_action = pending_spam_action.get(message.chat.id)
+    if spam_action:
+        if time.time() - float(spam_action.get("created_at", 0)) > 300:
+            pending_spam_action.pop(message.chat.id, None)
+            await message.reply("添加广告关键词已超时取消。请重新使用 /menu。")
+            return
+        if not message.text or message.text.startswith("/"):
+            await message.reply("请发送关键词；发送 /cancel 取消。")
+            return
+        word = message.text.strip()
+        pending_spam_action.pop(message.chat.id, None)
+        if not word:
+            await message.reply("关键词不能为空。")
+            return
+        words = update_spam_keywords("add", word)
+        await message.reply(f"已添加广告关键词：{html_escape(word)}\n当前共 {len(words)} 个。")
         return
 
     # Admin replies to forwarded/copy notification in admin chat.
@@ -2756,12 +3162,17 @@ async def run_all_monitors_once() -> None:
     logger.info("manual/all monitor run start, count=%d", len(monitors))
     total = 0
     for m in monitors:
+        if m.get("enabled", True) is False:
+            continue
         total += await run_monitor(m)
     logger.info("manual/all monitor run done, notifications=%d", total)
 
 
 def schedule_monitors(scheduler: AsyncIOScheduler) -> None:
     for idx, m in enumerate(config.get("monitors") or []):
+        if m.get("enabled", True) is False:
+            logger.info("monitor %s disabled, skipped scheduling", m.get("name", "unnamed"))
+            continue
         name = m.get("name", "unnamed")
         requested = int(m.get("interval_seconds", DEFAULT_MONITOR_INTERVAL_SECONDS))
         interval = max(requested, MIN_INTERVAL_SECONDS)
@@ -2985,6 +3396,7 @@ def cfg_save(new_cfg: dict[str, Any]) -> None:
     for m in monitors:
         if not isinstance(m, dict):
             raise ValueError("每个 monitor 必须是对象")
+        m.setdefault("enabled", True)
         if int(m.get("interval_seconds", DEFAULT_MONITOR_INTERVAL_SECONDS)) < MIN_INTERVAL_SECONDS:
             m["interval_seconds"] = MIN_INTERVAL_SECONDS
     group_monitor_rows = new_cfg.get("group_monitors") or []
@@ -3149,6 +3561,7 @@ def monitor_from_form(
         "keywords": parse_lines(keywords),
         "exclude_keywords": parse_lines(exclude_keywords),
         "notify_telegram": notify_telegram,
+        "enabled": True,
         "notify_on": {
             "keyword_match": keyword_match,
             "new_item": new_item,
@@ -3190,9 +3603,9 @@ body:before{{content:"";position:fixed;right:-140px;top:-120px;width:440px;heigh
 body:after{{content:"";position:fixed;left:-160px;bottom:-160px;width:440px;height:440px;border-radius:50%;background:rgba(64,201,199,.14);filter:blur(95px);z-index:-1;animation:floatB 11s var(--ease) infinite alternate}}
 a{{color:var(--ink);text-decoration:none}}
 a:hover{{text-decoration:underline}}
-.shell{{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}}
+.shell{{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh;max-width:100%;overflow-x:hidden}}
 aside{{border-right:1px solid var(--line);background:rgba(255,255,255,.5);backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;overscroll-behavior:contain;box-shadow:inset -1px 0 0 rgba(255,255,255,.35)}}
-main{{padding:24px 30px;min-width:0;max-width:1440px;animation:mainIn .25s var(--ease)}}
+main{{padding:24px 30px;min-width:0;max-width:1440px;width:100%;overflow-x:hidden;animation:mainIn .25s var(--ease)}}
 .brand{{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 4px 16px;border-bottom:1px solid var(--line)}}
 .mark{{width:44px;height:44px;border-radius:12px;background:rgba(59,91,219,.12);display:grid;place-items:center;flex:0 0 auto;transition:transform .2s var(--ease)}}
 .mark:before{{display:none}}
@@ -3215,14 +3628,14 @@ nav a:hover{{text-decoration:none;background:rgba(20,22,28,.05)}}
 .top-actions{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
 .top .badge{{background:rgba(59,91,219,.12);color:var(--blue)}}
 .theme-toggle{{width:34px;height:34px;padding:0;border-radius:8px;display:inline-grid;place-items:center}}
-.btn{{background:rgba(255,255,255,.85);color:var(--ink);padding:7px 12px;border:1px solid var(--line);border-radius:8px;display:inline-block;cursor:pointer;font-weight:600;line-height:1.35;text-transform:none;font-size:13px;transition:transform .14s var(--ease),box-shadow .14s var(--ease),background-color .14s var(--ease)}}
+.btn{{background:rgba(255,255,255,.85);color:var(--ink);padding:7px 12px;border:1px solid var(--line);border-radius:8px;display:inline-block;cursor:pointer;font-weight:600;line-height:1.35;text-transform:none;font-size:13px;white-space:nowrap;transition:transform .14s var(--ease),box-shadow .14s var(--ease),background-color .14s var(--ease)}}
 .btn:hover{{text-decoration:none;transform:translateY(-1px);box-shadow:0 4px 14px rgba(20,22,28,.08)}}
 .btn:active{{transform:translateY(0)}}
 .btn.primary{{background:var(--blue);border-color:transparent;color:#fff}}
 .btn.danger{{background:var(--red);border-color:transparent;color:#fff}}
 .btn.ok{{background:rgba(232,180,32,.9);border-color:transparent;color:#3a2f00}}
 .actions{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
-.card{{position:relative;background:rgba(255,255,255,.62);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 28px rgba(20,22,28,.06);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3)}}
+.card{{position:relative;min-width:0;background:rgba(255,255,255,.62);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 28px rgba(20,22,28,.06);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3)}}
 .card:after{{display:none}}
 .toolbar{{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}}
@@ -3240,8 +3653,8 @@ label{{display:block;margin:10px 0 5px;color:var(--ink);font-weight:600;font-siz
 .check-row input{{width:auto}}
 small,.muted{{color:var(--muted);line-height:1.5;font-weight:500}}
 .field-hint{{display:block;margin:-4px 0 14px;font-size:12px}}
-table{{width:100%;border-collapse:collapse;background:rgba(255,255,255,.5)}}
-td,th{{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}}
+table{{display:block;width:100%;max-width:100%;border-collapse:collapse;background:rgba(255,255,255,.5);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-gutter:stable}}
+td,th{{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top;overflow-wrap:anywhere;word-break:break-word}}
 th{{color:var(--ink);font-size:12px;background:rgba(59,91,219,.06);text-transform:none;letter-spacing:0;font-weight:700}}
 tr:nth-child(even) td{{background:rgba(20,22,28,.025)}}
 .badge{{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(59,91,219,.12);color:var(--blue);font-size:12px;font-weight:700;text-transform:none}}
@@ -3287,12 +3700,25 @@ html[data-theme="dark"] .brand,html[data-theme="dark"] .top,html[data-theme="dar
 @keyframes mainIn{{from{{opacity:.0;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
 @keyframes floatA{{from{{transform:translateY(0)}}to{{transform:translateY(-12px)}}}}
 @keyframes floatB{{from{{transform:translateY(0)}}to{{transform:translateY(-10px)}}}}
-@media(max-width:860px){{
+@media(max-width:1100px){{
   .shell{{grid-template-columns:1fr}}
-  aside{{position:relative;height:auto}}
+  aside{{position:relative;height:auto;overflow:visible}}
+  nav{{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  nav section{{min-width:0}}
+  nav section>a{{white-space:normal}}
   main{{padding:18px}}
-  nav{{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .top{{align-items:flex-start;flex-direction:column}}
+}}
+@media(max-width:700px){{
+  nav{{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  main{{padding:14px 12px}}
+  .card{{padding:14px 12px;margin:12px 0}}
+  .grid{{grid-template-columns:minmax(0,1fr)}}
+  .top h1{{font-size:22px;word-break:break-word}}
+  .actions{{width:100%}}
+  .actions .btn{{text-align:center}}
+  td,th{{padding:8px}}
+  table{{font-size:13px}}
 }}
 @media (prefers-reduced-motion: reduce){{
   *,*::before,*::after{{animation:none!important;transition:none!important}}
@@ -4679,6 +5105,17 @@ async def main_async(run_once: bool = False, panel_only: bool = False) -> None:
     bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_router(router)
+    try:
+        await bot.set_my_commands(
+            [
+                BotCommand(command="menu", description="管理菜单"),
+                BotCommand(command="panel", description="Web 面板"),
+                BotCommand(command="monitors", description="监控列表"),
+                BotCommand(command="spamwords", description="广告关键词"),
+            ]
+        )
+    except Exception:
+        logger.exception("register telegram bot commands failed")
     scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
     scheduler_ref = scheduler
     schedule_monitors(scheduler)
